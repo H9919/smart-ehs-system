@@ -1,4 +1,3 @@
-`yaml
 services:
   - type: web
     name: smart-ehs-system
@@ -25,7 +24,7 @@ services:
     plan: free  # Change to 'starter' for $7/month with no sleep
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.18
+        value: 3.11.9
       - key: SECRET_KEY
         generateValue: true
       - key: FLASK_ENV
