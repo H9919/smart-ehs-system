@@ -1,4 +1,4 @@
-# Fixed requirements.txt for Render deployment
+# Smart EHS System - Render Compatible Requirements
 # Core Web Framework
 Flask==2.3.3
 gunicorn==21.2.0
@@ -8,23 +8,17 @@ werkzeug==2.3.7
 python-dotenv==1.0.0
 requests==2.31.0
 
-# AI and ML Libraries (Compatible versions for Python 3.13)
-torch==2.5.1
-transformers==4.33.0
+# AI and ML Libraries (Pre-compiled wheels)
+torch==2.1.2
+transformers==4.35.2
 sentence-transformers==2.2.2
-scikit-learn==1.3.0
-numpy==1.24.3
+scikit-learn==1.3.2
+numpy==1.25.2
 
-# Document Processing
+# Document Processing (Lightweight)
 PyPDF2==3.0.1
 python-docx==0.8.11
-Pillow==10.0.0
+Pillow==10.0.1
 
-# Utilities
-geopy==2.3.0
-reportlab==4.0.4
-qrcode==7.4.2
-beautifulsoup4==4.12.2
-
-# Optional OCR (comment out if causing build issues)
-# easyocr==1.7.0
+# Basic Utilities Only
+geopy==2.4.1
