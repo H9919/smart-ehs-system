@@ -2,7 +2,6 @@ services:
   - type: web
     name: smart-ehs-system
     env: python
-    runtime: python
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
@@ -20,11 +19,9 @@ services:
       conn.close()
       print('✅ Smart EHS System initialized successfully!')
       "
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1 --max-requests 500
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1
     plan: free
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
       - key: SECRET_KEY
         generateValue: true
       - key: FLASK_ENV
@@ -33,7 +30,3 @@ services:
         value: sqlite:///data/smart_ehs.db
       - key: USE_GPU
         value: false
-      - key: TRANSFORMERS_CACHE
-        value: /tmp/transformers_cache
-      - key: SENTENCE_TRANSFORMERS_HOME
-        value: /tmp/sentence_transformers
