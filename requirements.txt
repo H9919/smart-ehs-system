@@ -1,23 +1,4 @@
-# Smart EHS System - Render Deployment Optimized
-# Core Web Framework
+# Smart EHS System - Absolute Minimal (No AI libraries)
 Flask==3.0.0
 gunicorn==21.2.0
-Werkzeug==3.0.1
-
-# Essential Dependencies
 python-dotenv==1.0.0
-requests==2.31.0
-
-# Basic AI/ML - More compatible versions
-numpy==1.24.3
-scikit-learn==1.3.0
-
-# Document Processing (optional - can be removed if causing issues)
-# PyPDF2==3.0.1
-# Pillow==10.0.1
-
-# Utilities
-# geopy==2.4.1
-
-# Database (if needed)
-# sqlite3 is built into Python
