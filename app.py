@@ -42,24 +42,43 @@ class SmartEHSSystem:
         logger.info("Smart EHS System initialized successfully")
     
     def init_ai_components(self):
-        """Initialize AI components with fallback"""
-        try:
-            # Try importing AI libraries
-            global SentenceTransformer, pipeline
-            from sentence_transformers import SentenceTransformer
-            from transformers import pipeline
-            
-            self.ai_enabled = True
-            self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-            self.intent_classifier = pipeline("zero-shot-classification", 
-                                             model="facebook/bart-large-mnli")
-            logger.info("AI components loaded successfully")
-            
-        except ImportError as e:
-            logger.warning(f"AI libraries not available, using basic mode: {e}")
-            self.ai_enabled = False
-            self.sentence_model = None
-            self.intent_classifier = None
+    """Initialize AI components with fallback"""
+    try:
+        # Try importing AI libraries with timeout
+        import signal
+        def timeout_handler(signum, frame):
+            raise TimeoutError("AI initialization timeout")
+        
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(60)  # 60 second timeout
+        
+        # Try importing AI libraries
+        from sentence_transformers import SentenceTransformer
+        from transformers import pipeline
+        
+        self.ai_enabled = True
+        logger.info("Loading AI models...")
+        
+        # Load models with smaller, faster versions
+        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+        logger.info("Sentence transformer loaded")
+        
+        # Use a lighter classification model
+        self.intent_classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli",
+            device=-1  # Force CPU
+        )
+        logger.info("Intent classifier loaded")
+        
+        signal.alarm(0)  # Cancel timeout
+        logger.info("AI components loaded successfully")
+        
+    except (ImportError, TimeoutError, Exception) as e:
+        logger.warning(f"AI libraries not available, using basic mode: {e}")
+        self.ai_enabled = False
+        self.sentence_model = None
+        self.intent_classifier = None
     
     def setup_database(self):
         """Setup SQLite database"""
