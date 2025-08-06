@@ -20,8 +20,8 @@ services:
       conn.close()
       print('✅ Smart EHS System initialized successfully!')
       "
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 2 --max-requests 1000
-    plan: free  # Change to 'starter' for $7/month with no sleep
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1 --max-requests 500
+    plan: free
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
