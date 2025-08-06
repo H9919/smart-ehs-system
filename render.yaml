@@ -19,7 +19,7 @@ services:
       conn.close()
       print('✅ Smart EHS System initialized successfully!')
       "
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1 --worker-class sync
     plan: free
     envVars:
       - key: SECRET_KEY
@@ -28,5 +28,3 @@ services:
         value: production
       - key: DATABASE_URL
         value: sqlite:///data/smart_ehs.db
-      - key: USE_GPU
-        value: false
