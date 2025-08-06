@@ -41,40 +41,27 @@ class SmartEHSSystem:
         
         logger.info("Smart EHS System initialized successfully")
     
-    def init_ai_components(self):
+def init_ai_components(self):
     """Initialize AI components with fallback"""
     try:
-        # Try importing AI libraries with timeout
-        import signal
-        def timeout_handler(signum, frame):
-            raise TimeoutError("AI initialization timeout")
-        
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(60)  # 60 second timeout
-        
         # Try importing AI libraries
         from sentence_transformers import SentenceTransformer
         from transformers import pipeline
         
         self.ai_enabled = True
-        logger.info("Loading AI models...")
+        logger.info("Loading AI models (this may take a moment)...")
         
-        # Load models with smaller, faster versions
+        # Load smaller, faster models
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Sentence transformer loaded")
+        logger.info("✅ Sentence transformer loaded")
         
-        # Use a lighter classification model
-        self.intent_classifier = pipeline(
-            "zero-shot-classification",
-            model="facebook/bart-large-mnli",
-            device=-1  # Force CPU
-        )
-        logger.info("Intent classifier loaded")
+        # Simplified intent classification without sklearn dependency
+        self.intent_classifier = None  # We'll use keyword-based classification
+        logger.info("✅ Using keyword-based intent classification")
         
-        signal.alarm(0)  # Cancel timeout
-        logger.info("AI components loaded successfully")
+        logger.info("✅ AI components initialized successfully")
         
-    except (ImportError, TimeoutError, Exception) as e:
+    except Exception as e:
         logger.warning(f"AI libraries not available, using basic mode: {e}")
         self.ai_enabled = False
         self.sentence_model = None
@@ -289,26 +276,28 @@ class SmartEHSSystem:
             })
     
     def classify_intent(self, message):
-        """Classify user intent"""
-        if self.ai_enabled and self.intent_classifier:
-            try:
-                intents = ["report incident", "sds question", "safety concern", "help", "general"]
-                result = self.intent_classifier(message, intents)
-                return result['labels'][0].replace(' ', '_')
-            except Exception as e:
-                logger.warning(f"AI intent classification failed: {e}")
-        
-        # Fallback keyword-based classification
-        if any(word in message for word in ['incident', 'accident', 'injury', 'report']):
-            return 'report_incident'
-        elif any(word in message for word in ['sds', 'chemical', 'safety data', 'hazard']):
-            return 'sds_query'
-        elif any(word in message for word in ['safety', 'concern', 'unsafe', 'hazard']):
-            return 'safety_concern'
-        elif any(word in message for word in ['help', 'what', 'how']):
-            return 'help'
-        else:
-            return 'general'
+    """Classify user intent using keyword matching (no sklearn needed)"""
+    message_lower = message.lower()
+    
+    # Enhanced keyword-based classification
+    incident_keywords = ['incident', 'accident', 'injury', 'hurt', 'injured', 'report', 'happened', 'occurred']
+    sds_keywords = ['sds', 'chemical', 'safety data', 'hazard', 'msds', 'substance', 'material']
+    safety_keywords = ['safety', 'concern', 'unsafe', 'dangerous', 'risk', 'hazard', 'observe', 'noticed']
+    help_keywords = ['help', 'what', 'how', 'can you', 'assist', 'guide', 'explain']
+    
+    # Score each intent
+    scores = {
+        'report_incident': sum(1 for word in incident_keywords if word in message_lower),
+        'sds_query': sum(1 for word in sds_keywords if word in message_lower),
+        'safety_concern': sum(1 for word in safety_keywords if word in message_lower),
+        'help': sum(1 for word in help_keywords if word in message_lower)
+    }
+    
+    # Return the intent with highest score
+    if max(scores.values()) > 0:
+        return max(scores, key=scores.get)
+    else:
+        return 'general'
     
     def incident_response(self):
         return """🚨 **Incident Reporting**
