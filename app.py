@@ -36,36 +36,12 @@ class SmartEHSSystem:
         # Setup routes
         self.setup_routes()
         
-        # Try to initialize AI components
-        self.init_ai_components()
-        
-        logger.info("Smart EHS System initialized successfully")
-    
-def init_ai_components(self):
-    """Initialize AI components with fallback"""
-    try:
-        # Try importing AI libraries
-        from sentence_transformers import SentenceTransformer
-        from transformers import pipeline
-        
-        self.ai_enabled = True
-        logger.info("Loading AI models (this may take a moment)...")
-        
-        # Load smaller, faster models
-        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("✅ Sentence transformer loaded")
-        
-        # Simplified intent classification without sklearn dependency
-        self.intent_classifier = None  # We'll use keyword-based classification
-        logger.info("✅ Using keyword-based intent classification")
-        
-        logger.info("✅ AI components initialized successfully")
-        
-    except Exception as e:
-        logger.warning(f"AI libraries not available, using basic mode: {e}")
+        # Initialize without heavy AI libraries for now
         self.ai_enabled = False
         self.sentence_model = None
         self.intent_classifier = None
+        
+        logger.info("Smart EHS System initialized successfully")
     
     def setup_database(self):
         """Setup SQLite database"""
@@ -168,47 +144,6 @@ def init_ai_components(self):
                 8: {'description': 'Major environmental damage', 'keywords': ['major spill', 'contamination']}
             }
         }
-        
-        # Try to load from CSV files if they exist
-        try:
-            self.load_csv_scales()
-        except Exception as e:
-            logger.warning(f"Could not load CSV scales, using defaults: {e}")
-    
-    def load_csv_scales(self):
-        """Load scales from CSV files"""
-        import csv
-        
-        # Load likelihood scale
-        try:
-            with open('likelihood_scale_rows.csv', 'r') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    score = int(row['score'])
-                    self.likelihood_scale[score] = {
-                        'label': row['label'],
-                        'description': row['description'],
-                        'keywords': json.loads(row.get('keywords', '[]'))
-                    }
-        except FileNotFoundError:
-            logger.info("likelihood_scale_rows.csv not found, using defaults")
-        
-        # Load severity scale
-        try:
-            with open('severity_scale.csv', 'r') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    category = row['category'].lower()
-                    score = int(row['score'])
-                    if category not in self.severity_scale:
-                        self.severity_scale[category] = {}
-                    
-                    self.severity_scale[category][score] = {
-                        'description': row['description'],
-                        'keywords': json.loads(row.get('keywords', '[]'))
-                    }
-        except FileNotFoundError:
-            logger.info("severity_scale.csv not found, using defaults")
     
     def setup_routes(self):
         """Setup Flask routes"""
@@ -276,28 +211,28 @@ def init_ai_components(self):
             })
     
     def classify_intent(self, message):
-    """Classify user intent using keyword matching (no sklearn needed)"""
-    message_lower = message.lower()
-    
-    # Enhanced keyword-based classification
-    incident_keywords = ['incident', 'accident', 'injury', 'hurt', 'injured', 'report', 'happened', 'occurred']
-    sds_keywords = ['sds', 'chemical', 'safety data', 'hazard', 'msds', 'substance', 'material']
-    safety_keywords = ['safety', 'concern', 'unsafe', 'dangerous', 'risk', 'hazard', 'observe', 'noticed']
-    help_keywords = ['help', 'what', 'how', 'can you', 'assist', 'guide', 'explain']
-    
-    # Score each intent
-    scores = {
-        'report_incident': sum(1 for word in incident_keywords if word in message_lower),
-        'sds_query': sum(1 for word in sds_keywords if word in message_lower),
-        'safety_concern': sum(1 for word in safety_keywords if word in message_lower),
-        'help': sum(1 for word in help_keywords if word in message_lower)
-    }
-    
-    # Return the intent with highest score
-    if max(scores.values()) > 0:
-        return max(scores, key=scores.get)
-    else:
-        return 'general'
+        """Classify user intent using keyword matching"""
+        message_lower = message.lower()
+        
+        # Enhanced keyword-based classification
+        incident_keywords = ['incident', 'accident', 'injury', 'hurt', 'injured', 'report', 'happened', 'occurred']
+        sds_keywords = ['sds', 'chemical', 'safety data', 'hazard', 'msds', 'substance', 'material']
+        safety_keywords = ['safety', 'concern', 'unsafe', 'dangerous', 'risk', 'hazard', 'observe', 'noticed']
+        help_keywords = ['help', 'what', 'how', 'can you', 'assist', 'guide', 'explain']
+        
+        # Score each intent
+        scores = {
+            'report_incident': sum(1 for word in incident_keywords if word in message_lower),
+            'sds_query': sum(1 for word in sds_keywords if word in message_lower),
+            'safety_concern': sum(1 for word in safety_keywords if word in message_lower),
+            'help': sum(1 for word in help_keywords if word in message_lower)
+        }
+        
+        # Return the intent with highest score
+        if max(scores.values()) > 0:
+            return max(scores, key=scores.get)
+        else:
+            return 'general'
     
     def incident_response(self):
         return """🚨 **Incident Reporting**
@@ -485,144 +420,164 @@ What can I help you with today?"""
     
     def get_main_template(self):
         """Return main HTML template"""
-        return '''
-
-
-
-    
-    
-    Smart EHS Management System
-    
-    
-    
+        return '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart EHS Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
         .chat-message { animation: fadeIn 0.3s ease-in; margin-bottom: 1rem; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .ai-response { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
         .user-message { background: #3b82f6; color: white; margin-left: 2rem; }
-    
+    </style>
+</head>
 
-
-    
-    
-        
-            
-                
-                    
-                    Smart EHS System
-                    
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-shield-alt text-blue-600 text-2xl"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Smart EHS System</h1>
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                         Live on Render
-                    
-                
-            
-        
-    
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
 
-    
-    
-        
-        
-            🛡️ Smart EHS Management System
-            AI-Powered Safety Management • Incident Reporting • Chemical Safety
-        
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Title Section -->
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-gray-800 mb-2">
+                🛡️ Smart EHS Management System
+            </h2>
+            <p class="text-gray-600 text-lg">AI-Powered Safety Management • Incident Reporting • Chemical Safety</p>
+        </div>
 
-        
-        
-            
-                
-                    
-                    
-                        Total Incidents
-                        0
-                    
-                
-            
-            
-                
-                    
-                    
-                        SDS Documents
-                        0
-                    
-                
-            
-            
-                
-                    
-                    
-                        Pending Actions
-                        0
-                    
-                
-            
-            
-                
-                    
-                    
-                        System Status
-                        Online
-                    
-                
-            
-        
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Total Incidents</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalIncidents">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-blue-500 text-2xl"></i>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">SDS Documents</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalSDS">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-tasks text-yellow-500 text-2xl"></i>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Pending Actions</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="pendingActions">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <i class="fas fa-heartbeat text-green-500 text-2xl"></i>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">System Status</p>
+                        <p class="text-2xl font-semibold text-gray-900">Online</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        
-        
-            
-                
-                    
-                    EHS Assistant
-                    
-                        AI Powered
-                    
-                
-            
-            
-            
-                
-                    
-                        
-                        
-                            EHS Assistant
-                            Welcome to the Smart EHS System! I can help you with:
-                            
-                                • 🚨 Report incidents - workplace injuries, accidents, near misses
-                                • 📄 Chemical safety - SDS information and hazard data
-                                • ⚠️ Safety concerns - hazard identification and reporting
-                                • 📊 Risk assessment - evaluate workplace risks
-                            
-                            Try: "I need to report an incident" or "Tell me about chemical safety"
-                        
-                    
-                
-            
-            
-            
-                
-                    
-                    
-                        
-                    
-                
-                
-                
-                    
-                        Report Incident
-                    
-                    
-                        Chemical Safety
-                    
-                    
-                        Safety Concern
-                    
-                    
-                        Risk Assessment
-                    
-                
-            
-        
-    
+        <!-- Chat Interface -->
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-robot text-blue-600 text-xl"></i>
+                        <h3 class="text-lg font-semibold text-gray-800">EHS Assistant</h3>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                            AI Powered
+                        </span>
+                    </div>
+                </div>
+                <div class="h-96 overflow-y-auto p-6 space-y-4" id="chatContainer">
+                    <!-- Welcome Message -->
+                    <div class="chat-message ai-response p-4 rounded-lg max-w-4/5">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-robot text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="font-semibold">EHS Assistant</span>
+                                    <span class="text-xs opacity-75">Just now</span>
+                                </div>
+                                <div>Welcome to the Smart EHS System! I can help you with:
+                                <ul class="mt-2 space-y-1">
+                                    <li>• 🚨 Report incidents - workplace injuries, accidents, near misses</li>
+                                    <li>• 📄 Chemical safety - SDS information and hazard data</li>
+                                    <li>• ⚠️ Safety concerns - hazard identification and reporting</li>
+                                    <li>• 📊 Risk assessment - evaluate workplace risks</li>
+                                </ul>
+                                <p class="mt-2">Try: "I need to report an incident" or "Tell me about chemical safety"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 border-t border-gray-200">
+                    <div class="flex space-x-4">
+                        <input 
+                            type="text" 
+                            id="chatInput"
+                            placeholder="Ask about safety, report incidents, or get help..."
+                            class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <button 
+                            id="sendBtn"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button onclick="sendQuickMessage('I need to report an incident')" 
+                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
+                            Report Incident
+                        </button>
+                        <button onclick="sendQuickMessage('Tell me about chemical safety')" 
+                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
+                            Chemical Safety
+                        </button>
+                        <button onclick="sendQuickMessage('I have a safety concern')" 
+                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
+                            Safety Concern
+                        </button>
+                        <button onclick="sendQuickMessage('Help me assess risk')" 
+                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
+                            Risk Assessment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboardStats();
             setupEventListeners();
@@ -685,18 +640,18 @@ What can I help you with today?"""
             const icon = sender === 'You' ? 'fas fa-user' : 'fas fa-robot';
             
             messageDiv.innerHTML = `
-                
-                    
-                        
-                    
-                    
-                        
-                            ${sender}
-                            ${new Date().toLocaleTimeString()}
-                        
-                        ${message}
-                    
-                
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <i class="${icon}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="font-semibold">${sender}</span>
+                            <span class="text-xs opacity-75">${new Date().toLocaleTimeString()}</span>
+                        </div>
+                        <div class="whitespace-pre-wrap">${message}</div>
+                    </div>
+                </div>
             `;
             
             chatContainer.appendChild(messageDiv);
@@ -718,10 +673,9 @@ What can I help you with today?"""
                 console.error('Error loading stats:', error);
             }
         }
-    
-
-
-        '''
+    </script>
+</body>
+</html>'''
 
 # Create the Flask app instance
 app = SmartEHSSystem().app
