@@ -1,14 +1,18 @@
 import os
 import sys
 import logging
-from pathlib import Path
-from flask import Flask, render_template_string, request, jsonify, session
 import sqlite3
-from datetime import datetime
 import json
 import uuid
 import hashlib
 import re
+import base64
+from pathlib import Path
+from datetime import datetime
+from flask import Flask, render_template_string, request, jsonify, session, send_file, url_for
+from werkzeug.utils import secure_filename
+import zipfile
+import io
 
 # Configure logging
 logging.basicConfig(
@@ -18,14 +22,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Create necessary directories
-for directory in ['static/uploads', 'static/exports', 'static/labels', 'data']:
+for directory in ['static/uploads', 'static/exports', 'static/labels', 'static/sds', 'static/photos', 'data']:
     Path(directory).mkdir(parents=True, exist_ok=True)
 
-class SmartEHSSystem:
+class EnhancedEHSSystem:
     def __init__(self):
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ehs-secret-key-2024')
-        self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+        self.app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB
+        self.app.config['UPLOAD_FOLDER'] = 'static/uploads'
         
         # Initialize database
         self.setup_database()
@@ -36,15 +41,13 @@ class SmartEHSSystem:
         # Setup routes
         self.setup_routes()
         
-        # Initialize without heavy AI libraries for now
-        self.ai_enabled = False
-        self.sentence_model = None
-        self.intent_classifier = None
+        # Chemical safety database (simplified for demo)
+        self.chemical_db = self.load_chemical_database()
         
-        logger.info("Smart EHS System initialized successfully")
+        logger.info("Enhanced EHS System initialized successfully")
     
     def setup_database(self):
-        """Setup SQLite database"""
+        """Setup SQLite database with enhanced tables"""
         db_path = 'data/smart_ehs.db'
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -56,11 +59,13 @@ class SmartEHSSystem:
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'contributor',
+                department TEXT,
+                location TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Incidents table
+        # Enhanced incidents table with photo support
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS incidents (
                 id TEXT PRIMARY KEY,
@@ -68,6 +73,10 @@ class SmartEHSSystem:
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 location TEXT,
+                department TEXT,
+                state TEXT,
+                city TEXT,
+                photos TEXT,
                 severity_people INTEGER DEFAULT 0,
                 severity_environment INTEGER DEFAULT 0,
                 severity_cost INTEGER DEFAULT 0,
@@ -76,25 +85,58 @@ class SmartEHSSystem:
                 likelihood_score INTEGER DEFAULT 0,
                 risk_score INTEGER DEFAULT 0,
                 status TEXT DEFAULT 'open',
+                reporter_name TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # SDS Documents table
+        # Enhanced SDS Documents table with location hierarchy
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS sds_documents (
                 id TEXT PRIMARY KEY,
                 product_name TEXT NOT NULL,
                 manufacturer TEXT,
+                cas_number TEXT,
                 file_path TEXT,
+                file_name TEXT,
                 full_text TEXT,
-                ghs_info TEXT,
-                nfpa_info TEXT,
+                ghs_hazards TEXT,
+                nfpa_health INTEGER DEFAULT 0,
+                nfpa_fire INTEGER DEFAULT 0,
+                nfpa_reactivity INTEGER DEFAULT 0,
+                nfpa_special TEXT,
+                state TEXT,
+                city TEXT,
+                department TEXT,
+                building TEXT,
+                room TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Chat history table
+        # Safety concerns table with photos
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS safety_concerns (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                location TEXT,
+                department TEXT,
+                state TEXT,
+                city TEXT,
+                photos TEXT,
+                severity_level INTEGER DEFAULT 0,
+                likelihood_level INTEGER DEFAULT 0,
+                risk_score INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'open',
+                reporter_name TEXT,
+                assigned_to TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Chat history table enhanced
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS chat_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,46 +144,137 @@ class SmartEHSSystem:
                 response TEXT NOT NULL,
                 intent TEXT,
                 confidence REAL,
+                context_data TEXT,
+                user_id TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Insert default admin user
+        # CAPA tracking table
         cursor.execute('''
-            INSERT OR IGNORE INTO users (username, password_hash, role)
-            VALUES (?, ?, ?)
-        ''', ('admin', 'pbkdf2:sha256:260000$salt$hash', 'admin'))
+            CREATE TABLE IF NOT EXISTS capa_actions (
+                id TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                assigned_to TEXT,
+                due_date DATE,
+                status TEXT DEFAULT 'open',
+                priority TEXT DEFAULT 'medium',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP
+            )
+        ''')
+        
+        # Risk register table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS risk_register (
+                id TEXT PRIMARY KEY,
+                risk_title TEXT NOT NULL,
+                risk_description TEXT NOT NULL,
+                risk_category TEXT NOT NULL,
+                likelihood_score INTEGER NOT NULL,
+                severity_people INTEGER DEFAULT 0,
+                severity_environment INTEGER DEFAULT 0,
+                severity_cost INTEGER DEFAULT 0,
+                severity_reputation INTEGER DEFAULT 0,
+                severity_legal INTEGER DEFAULT 0,
+                risk_score INTEGER NOT NULL,
+                mitigation_measures TEXT,
+                risk_owner TEXT,
+                review_date DATE,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         conn.commit()
         conn.close()
-        logger.info("Database setup completed")
+        logger.info("Enhanced database setup completed")
     
     def load_scoring_data(self):
-        """Load severity and likelihood scales"""
+        """Load severity and likelihood scales from uploaded CSV files"""
         # Default likelihood scale
         self.likelihood_scale = {
             0: {'label': 'Impossible', 'description': 'Cannot happen'},
-            2: {'label': 'Rare', 'description': 'Extremely unlikely'},
-            4: {'label': 'Unlikely', 'description': 'Could happen exceptionally'},
-            6: {'label': 'Possible', 'description': 'Might happen occasionally'},
-            8: {'label': 'Likely', 'description': 'Expected to happen'},
-            10: {'label': 'Almost Certain', 'description': 'Will almost certainly happen'}
+            2: {'label': 'Rare', 'description': 'Extremely unlikely (once in 10+ years)'},
+            4: {'label': 'Unlikely', 'description': 'Could happen exceptionally (once every 5-10 years)'},
+            6: {'label': 'Possible', 'description': 'Might happen occasionally (once every 1-5 years)'},
+            8: {'label': 'Likely', 'description': 'Expected to happen regularly (once per year or more)'},
+            10: {'label': 'Almost Certain', 'description': 'Will almost certainly happen (multiple times per year)'}
         }
         
-        # Default severity scale
+        # Default severity scales
         self.severity_scale = {
             'people': {
-                0: {'description': 'No injury', 'keywords': ['safe', 'no harm']},
-                2: {'description': 'First aid only', 'keywords': ['minor', 'first aid']},
-                4: {'description': 'Medical treatment', 'keywords': ['medical', 'treatment']},
-                6: {'description': 'Hospitalization', 'keywords': ['hospital', 'serious']},
-                8: {'description': 'Permanent disability', 'keywords': ['disability']},
-                10: {'description': 'Fatality', 'keywords': ['death', 'fatal']}
+                0: {'description': 'No injury or risk of harm', 'keywords': ['safe', 'no harm', 'uninjured']},
+                2: {'description': 'First aid only; no lost time', 'keywords': ['first aid', 'minor', 'band-aid']},
+                4: {'description': 'Medical treatment; lost time injury', 'keywords': ['medical', 'treatment', 'doctor visit']},
+                6: {'description': 'Serious injury; hospitalization', 'keywords': ['hospital', 'serious', 'admitted']},
+                8: {'description': 'Permanent disability', 'keywords': ['disability', 'amputation', 'permanent']},
+                10: {'description': 'Single or multiple fatalities', 'keywords': ['death', 'fatality', 'killed']}
             },
             'environment': {
-                0: {'description': 'No environmental impact', 'keywords': ['clean', 'contained']},
-                4: {'description': 'Minor spill/leak', 'keywords': ['small spill', 'minor']},
-                8: {'description': 'Major environmental damage', 'keywords': ['major spill', 'contamination']}
+                0: {'description': 'No environmental impact', 'keywords': ['clean', 'contained', 'no spill']},
+                2: {'description': 'Minor spill/release contained on-site', 'keywords': ['small spill', 'minor leak']},
+                4: {'description': 'Moderate spill requiring cleanup', 'keywords': ['spill', 'cleanup', 'moderate']},
+                6: {'description': 'Significant environmental damage', 'keywords': ['environmental damage', 'contamination']},
+                8: {'description': 'Major environmental impact', 'keywords': ['major spill', 'widespread']},
+                10: {'description': 'Catastrophic environmental damage', 'keywords': ['catastrophic', 'disaster']}
+            },
+            'cost': {
+                0: {'description': 'No financial impact (<$1K)', 'keywords': ['minimal cost', 'no expense']},
+                2: {'description': 'Low cost impact ($1K-$10K)', 'keywords': ['low cost', 'minor expense']},
+                4: {'description': 'Moderate cost ($10K-$100K)', 'keywords': ['moderate cost', 'significant expense']},
+                6: {'description': 'High cost ($100K-$1M)', 'keywords': ['expensive', 'high cost']},
+                8: {'description': 'Very high cost ($1M-$10M)', 'keywords': ['very expensive', 'major cost']},
+                10: {'description': 'Extreme cost (>$10M)', 'keywords': ['extreme cost', 'catastrophic loss']}
+            },
+            'reputation': {
+                0: {'description': 'No public awareness', 'keywords': ['private', 'internal', 'no publicity']},
+                2: {'description': 'Minor local attention', 'keywords': ['local news', 'minor attention']},
+                4: {'description': 'Regional media attention', 'keywords': ['regional news', 'media coverage']},
+                6: {'description': 'National media attention', 'keywords': ['national news', 'widespread coverage']},
+                8: {'description': 'International attention', 'keywords': ['international news', 'global coverage']},
+                10: {'description': 'Severe reputation damage', 'keywords': ['brand damage', 'public relations disaster']}
+            },
+            'legal': {
+                0: {'description': 'No legal implications', 'keywords': ['no legal issues', 'compliant']},
+                2: {'description': 'Minor regulatory involvement', 'keywords': ['minor violation', 'warning']},
+                4: {'description': 'Regulatory investigation', 'keywords': ['investigation', 'regulatory review']},
+                6: {'description': 'Significant fines or penalties', 'keywords': ['fines', 'penalties', 'enforcement']},
+                8: {'description': 'Criminal charges possible', 'keywords': ['criminal charges', 'prosecution']},
+                10: {'description': 'Severe legal consequences', 'keywords': ['lawsuit', 'criminal liability']}
+            }
+        }
+    
+    def load_chemical_database(self):
+        """Load basic chemical safety database"""
+        return {
+            'acetone': {
+                'name': 'Acetone',
+                'cas': '67-64-1',
+                'ghs_hazards': ['H225: Highly flammable liquid', 'H319: Causes serious eye irritation', 'H336: May cause drowsiness'],
+                'nfpa': {'health': 1, 'fire': 3, 'reactivity': 0, 'special': ''},
+                'ppe': ['Safety glasses', 'Nitrile gloves', 'Lab coat'],
+                'storage': 'Store in cool, dry place away from ignition sources'
+            },
+            'methanol': {
+                'name': 'Methanol',
+                'cas': '67-56-1',
+                'ghs_hazards': ['H225: Highly flammable liquid', 'H301: Toxic if swallowed', 'H311: Toxic in contact with skin', 'H331: Toxic if inhaled'],
+                'nfpa': {'health': 1, 'fire': 3, 'reactivity': 0, 'special': ''},
+                'ppe': ['Chemical safety goggles', 'Nitrile gloves', 'Lab coat', 'Fume hood'],
+                'storage': 'Store in cool, dry, well-ventilated area away from heat and ignition sources'
+            },
+            'sulfuric acid': {
+                'name': 'Sulfuric Acid',
+                'cas': '7664-93-9',
+                'ghs_hazards': ['H314: Causes severe skin burns', 'H335: May cause respiratory irritation'],
+                'nfpa': {'health': 3, 'fire': 0, 'reactivity': 2, 'special': 'W'},
+                'ppe': ['Chemical safety goggles', 'Acid-resistant gloves', 'Lab coat', 'Face shield'],
+                'storage': 'Store in corrosive-resistant secondary containment'
             }
         }
     
@@ -150,30 +283,74 @@ class SmartEHSSystem:
         
         @self.app.route('/')
         def index():
-            return self.get_main_template()
+            return self.get_main_dashboard()
+        
+        @self.app.route('/dashboard')
+        def dashboard():
+            return self.get_main_dashboard()
+        
+        @self.app.route('/incident-management')
+        def incident_management():
+            return self.get_incident_management_page()
+        
+        @self.app.route('/sds-management')
+        def sds_management():
+            return self.get_sds_management_page()
+        
+        @self.app.route('/safety-concerns')
+        def safety_concerns():
+            return self.get_safety_concerns_page()
+        
+        @self.app.route('/risk-management')
+        def risk_management():
+            return self.get_risk_management_page()
         
         @self.app.route('/health')
         def health():
             return jsonify({
                 'status': 'healthy',
-                'ai_enabled': self.ai_enabled,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'modules': ['incident_management', 'sds_management', 'safety_concerns', 'risk_management']
             })
         
         @self.app.route('/api/chat', methods=['POST'])
         def chat():
             return self.handle_chat()
         
+        @self.app.route('/api/dashboard-stats')
+        def dashboard_stats():
+            return self.get_dashboard_stats()
+        
         @self.app.route('/api/incident', methods=['POST'])
         def create_incident():
             return self.create_incident()
         
-        @self.app.route('/api/dashboard-stats')
-        def dashboard_stats():
-            return self.get_dashboard_stats()
+        @self.app.route('/api/safety-concern', methods=['POST'])
+        def create_safety_concern():
+            return self.create_safety_concern()
+        
+        @self.app.route('/api/upload-sds', methods=['POST'])
+        def upload_sds():
+            return self.upload_sds_file()
+        
+        @self.app.route('/api/sds-documents')
+        def get_sds_documents():
+            return self.get_sds_documents()
+        
+        @self.app.route('/api/generate-label/<label_type>/<document_id>')
+        def generate_label(label_type, document_id):
+            return self.generate_safety_label(label_type, document_id)
+        
+        @self.app.route('/api/upload-photo', methods=['POST'])
+        def upload_photo():
+            return self.handle_photo_upload()
+        
+        @self.app.route('/download-sds/<document_id>')
+        def download_sds(document_id):
+            return self.download_sds_file(document_id)
     
     def handle_chat(self):
-        """Handle chat messages"""
+        """Enhanced chat handler with SDS intelligence"""
         try:
             data = request.get_json()
             message = data.get('message', '').lower()
@@ -181,26 +358,30 @@ class SmartEHSSystem:
             # Classify intent
             intent = self.classify_intent(message)
             
-            # Generate response based on intent
-            if intent == 'report_incident':
+            # Check for chemical-specific queries
+            chemical_info = self.extract_chemical_info(message)
+            
+            if intent == 'sds_query' and chemical_info:
+                response = self.get_chemical_safety_info(chemical_info)
+            elif intent == 'report_incident':
                 response = self.incident_response()
-            elif intent == 'sds_query':
-                response = self.sds_response()
             elif intent == 'safety_concern':
                 response = self.safety_response()
+            elif intent == 'risk_assessment':
+                response = self.risk_assessment_response()
             elif intent == 'help':
                 response = self.help_response()
             else:
                 response = self.default_response()
             
             # Store in chat history
-            self.store_chat_history(data.get('message', ''), response, intent)
+            self.store_chat_history(data.get('message', ''), response, intent, chemical_info)
             
             return jsonify({
                 'response': response,
                 'intent': intent,
-                'ai_enabled': self.ai_enabled,
-                'confidence': 0.8
+                'chemical_info': chemical_info,
+                'confidence': 0.85
             })
             
         except Exception as e:
@@ -211,161 +392,104 @@ class SmartEHSSystem:
             })
     
     def classify_intent(self, message):
-        """Classify user intent using keyword matching"""
+        """Enhanced intent classification"""
         message_lower = message.lower()
         
-        # Enhanced keyword-based classification
-        incident_keywords = ['incident', 'accident', 'injury', 'hurt', 'injured', 'report', 'happened', 'occurred']
-        sds_keywords = ['sds', 'chemical', 'safety data', 'hazard', 'msds', 'substance', 'material']
+        incident_keywords = ['incident', 'accident', 'injury', 'hurt', 'injured', 'report incident', 'happened', 'occurred']
+        sds_keywords = ['sds', 'chemical', 'safety data', 'hazard', 'msds', 'substance', 'material', 'acetone', 'methanol']
         safety_keywords = ['safety', 'concern', 'unsafe', 'dangerous', 'risk', 'hazard', 'observe', 'noticed']
+        risk_keywords = ['risk', 'assess', 'assessment', 'evaluate', 'probability', 'likelihood', 'severity']
         help_keywords = ['help', 'what', 'how', 'can you', 'assist', 'guide', 'explain']
         
-        # Score each intent
         scores = {
-            'report_incident': sum(1 for word in incident_keywords if word in message_lower),
-            'sds_query': sum(1 for word in sds_keywords if word in message_lower),
-            'safety_concern': sum(1 for word in safety_keywords if word in message_lower),
-            'help': sum(1 for word in help_keywords if word in message_lower)
+            'report_incident': sum(2 if word in message_lower else 0 for word in incident_keywords),
+            'sds_query': sum(2 if word in message_lower else 0 for word in sds_keywords),
+            'safety_concern': sum(2 if word in message_lower else 0 for word in safety_keywords),
+            'risk_assessment': sum(2 if word in message_lower else 0 for word in risk_keywords),
+            'help': sum(1 if word in message_lower else 0 for word in help_keywords)
         }
         
-        # Return the intent with highest score
-        if max(scores.values()) > 0:
-            return max(scores, key=scores.get)
-        else:
-            return 'general'
+        return max(scores, key=scores.get) if max(scores.values()) > 0 else 'general'
     
-    def incident_response(self):
-        return """🚨 **Incident Reporting**
-
-I can help you report an incident. Please provide:
-
-1. **Type of incident**:
-   - Injury/Illness
-   - Near Miss
-   - Property Damage
-   - Environmental (spill/leak)
-   - Security Issue
-
-2. **Location**: Where did it happen?
-3. **Description**: What happened?
-4. **When**: Date and time
-
-Example: "There was a chemical spill in Laboratory A at 2:30 PM today"
-
-For immediate emergencies, contact emergency services first!"""
-
-    def sds_response(self):
-        return """📄 **Safety Data Sheet Information**
-
-I can help you with chemical safety information. You can:
-
-1. **Ask about specific chemicals**:
-   - "What are the hazards of acetone?"
-   - "How should I store methanol?"
-   - "What PPE is needed for sulfuric acid?"
-
-2. **Upload SDS documents** (coming soon)
-3. **Generate safety labels** (GHS/NFPA format)
-
-What chemical or safety information do you need?"""
-
-    def safety_response(self):
-        return """⚠️ **Safety Concerns**
-
-Report any unsafe conditions or behaviors you observe:
-
-**Common Safety Concerns**:
-- Unsafe equipment or machinery
-- Missing or damaged PPE
-- Blocked emergency exits
-- Chemical storage issues
-- Environmental hazards
-
-**What to include**:
-- Location of the concern
-- Description of the hazard
-- Potential consequences
-- Suggested solutions"""
-
-    def help_response(self):
-        return """🛡️ **Smart EHS System Help**
-
-**I can assist with**:
-- 🚨 **Incident Reporting**: Report workplace accidents, injuries, near misses
-- 📄 **SDS Management**: Chemical safety information and documentation
-- ⚠️ **Safety Concerns**: Report unsafe conditions or behaviors
-- 📊 **Risk Assessment**: Evaluate and manage workplace risks
-
-**Quick Commands**:
-- "Report an incident" - Start incident reporting
-- "Chemical safety info" - Get SDS information
-- "Safety concern" - Report hazards
-- "Help me assess risk" - Risk assessment tools
-
-How can I help you stay safe today?"""
-
-    def default_response(self):
-        return """👋 Hello! I'm your Smart EHS Assistant.
-
-I can help you with:
-- 🚨 Report incidents and accidents
-- 📄 Find chemical safety information
-- ⚠️ Report safety concerns
-- 📊 Assess workplace risks
-
-Try saying:
-- "I need to report an incident"
-- "Tell me about chemical safety"
-- "I have a safety concern"
-- "Help me with risk assessment"
-
-What can I help you with today?"""
+    def extract_chemical_info(self, message):
+        """Extract chemical names from message"""
+        chemicals_found = []
+        for chemical in self.chemical_db.keys():
+            if chemical in message.lower():
+                chemicals_found.append(chemical)
+        return chemicals_found
     
-    def store_chat_history(self, message, response, intent):
-        """Store chat interaction in database"""
-        try:
-            conn = sqlite3.connect('data/smart_ehs.db')
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                INSERT INTO chat_history (message, response, intent, confidence)
-                VALUES (?, ?, ?, ?)
-            ''', (message, response, intent, 0.8))
-            
-            conn.commit()
-            conn.close()
-            
-        except Exception as e:
-            logger.error(f"Error storing chat history: {e}")
+    def get_chemical_safety_info(self, chemicals):
+        """Get detailed chemical safety information"""
+        if not chemicals:
+            return self.sds_response()
+        
+        response = "🧪 **Chemical Safety Information**\n\n"
+        
+        for chemical in chemicals:
+            if chemical in self.chemical_db:
+                info = self.chemical_db[chemical]
+                response += f"**{info['name']} (CAS: {info['cas']})**\n\n"
+                response += f"🚨 **GHS Hazards:**\n"
+                for hazard in info['ghs_hazards']:
+                    response += f"• {hazard}\n"
+                
+                response += f"\n🔥 **NFPA Ratings:**\n"
+                response += f"• Health: {info['nfpa']['health']}/4\n"
+                response += f"• Fire: {info['nfpa']['fire']}/4\n"
+                response += f"• Reactivity: {info['nfpa']['reactivity']}/4\n"
+                if info['nfpa']['special']:
+                    response += f"• Special: {info['nfpa']['special']}\n"
+                
+                response += f"\n🥽 **Required PPE:**\n"
+                for ppe in info['ppe']:
+                    response += f"• {ppe}\n"
+                
+                response += f"\n📦 **Storage:** {info['storage']}\n\n"
+        
+        response += "Need to generate a GHS or NFPA label? Just ask!"
+        return response
     
     def create_incident(self):
-        """Create new incident"""
+        """Create new incident with photo support"""
         try:
             data = request.get_json()
             incident_id = str(uuid.uuid4())
+            
+            # Calculate risk score
+            severity_people = int(data.get('severity_people', 0))
+            severity_environment = int(data.get('severity_environment', 0))
+            severity_cost = int(data.get('severity_cost', 0))
+            severity_reputation = int(data.get('severity_reputation', 0))
+            severity_legal = int(data.get('severity_legal', 0))
+            likelihood = int(data.get('likelihood', 0))
+            
+            # Calculate maximum severity across all categories
+            max_severity = max(severity_people, severity_environment, severity_cost, severity_reputation, severity_legal)
+            risk_score = max_severity * likelihood
             
             conn = sqlite3.connect('data/smart_ehs.db')
             cursor = conn.cursor()
             
             cursor.execute('''
                 INSERT INTO incidents (
-                    id, type, title, description, location,
+                    id, type, title, description, location, department, state, city, photos,
                     severity_people, severity_environment, severity_cost,
-                    severity_reputation, severity_legal, likelihood_score, risk_score
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    severity_reputation, severity_legal, likelihood_score, risk_score, reporter_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 incident_id,
                 data.get('type', 'general'),
                 data.get('title', 'Incident Report'),
                 data.get('description', ''),
                 data.get('location', ''),
-                data.get('severity_people', 0),
-                data.get('severity_environment', 0),
-                data.get('severity_cost', 0),
-                data.get('severity_reputation', 0),
-                data.get('severity_legal', 0),
-                data.get('likelihood', 0),
-                data.get('risk_score', 0)
+                data.get('department', ''),
+                data.get('state', ''),
+                data.get('city', ''),
+                json.dumps(data.get('photos', [])),
+                severity_people, severity_environment, severity_cost,
+                severity_reputation, severity_legal, likelihood, risk_score,
+                data.get('reporter_name', '')
             ))
             
             conn.commit()
@@ -374,6 +498,7 @@ What can I help you with today?"""
             return jsonify({
                 'success': True,
                 'incident_id': incident_id,
+                'risk_score': risk_score,
                 'message': 'Incident reported successfully'
             })
             
@@ -381,305 +506,224 @@ What can I help you with today?"""
             logger.error(f"Error creating incident: {e}")
             return jsonify({'success': False, 'error': str(e)})
     
-    def get_dashboard_stats(self):
-        """Get dashboard statistics"""
+    def create_safety_concern(self):
+        """Create new safety concern with photo support"""
+        try:
+            data = request.get_json()
+            concern_id = str(uuid.uuid4())
+            
+            severity = int(data.get('severity_level', 0))
+            likelihood = int(data.get('likelihood_level', 0))
+            risk_score = severity * likelihood
+            
+            conn = sqlite3.connect('data/smart_ehs.db')
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT INTO safety_concerns (
+                    id, type, title, description, location, department, state, city, photos,
+                    severity_level, likelihood_level, risk_score, reporter_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                concern_id,
+                data.get('type', 'general'),
+                data.get('title', 'Safety Concern'),
+                data.get('description', ''),
+                data.get('location', ''),
+                data.get('department', ''),
+                data.get('state', ''),
+                data.get('city', ''),
+                json.dumps(data.get('photos', [])),
+                severity, likelihood, risk_score,
+                data.get('reporter_name', '')
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'concern_id': concern_id,
+                'risk_score': risk_score,
+                'message': 'Safety concern reported successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating safety concern: {e}")
+            return jsonify({'success': False, 'error': str(e)})
+    
+    def upload_sds_file(self):
+        """Upload SDS file with location organization"""
+        try:
+            if 'file' not in request.files:
+                return jsonify({'success': False, 'error': 'No file provided'})
+            
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'success': False, 'error': 'No file selected'})
+            
+            # Get form data
+            product_name = request.form.get('product_name', '')
+            manufacturer = request.form.get('manufacturer', '')
+            cas_number = request.form.get('cas_number', '')
+            state = request.form.get('state', '')
+            city = request.form.get('city', '')
+            department = request.form.get('department', '')
+            building = request.form.get('building', '')
+            room = request.form.get('room', '')
+            
+            # Create location-based directory structure
+            location_path = os.path.join('static', 'sds', state, city, department)
+            os.makedirs(location_path, exist_ok=True)
+            
+            # Save file
+            filename = secure_filename(file.filename)
+            sds_id = str(uuid.uuid4())
+            file_path = os.path.join(location_path, f"{sds_id}_{filename}")
+            file.save(file_path)
+            
+            # Store in database
+            conn = sqlite3.connect('data/smart_ehs.db')
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT INTO sds_documents (
+                    id, product_name, manufacturer, cas_number, file_path, file_name,
+                    state, city, department, building, room
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                sds_id, product_name, manufacturer, cas_number, file_path, filename,
+                state, city, department, building, room
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'sds_id': sds_id,
+                'message': 'SDS file uploaded successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error uploading SDS: {e}")
+            return jsonify({'success': False, 'error': str(e)})
+    
+    def get_sds_documents(self):
+        """Get SDS documents with location filtering"""
+        try:
+            state = request.args.get('state', '')
+            city = request.args.get('city', '')
+            department = request.args.get('department', '')
+            
+            conn = sqlite3.connect('data/smart_ehs.db')
+            cursor = conn.cursor()
+            
+            query = 'SELECT * FROM sds_documents WHERE 1=1'
+            params = []
+            
+            if state:
+                query += ' AND state = ?'
+                params.append(state)
+            if city:
+                query += ' AND city = ?'
+                params.append(city)
+            if department:
+                query += ' AND department = ?'
+                params.append(department)
+            
+            query += ' ORDER BY created_at DESC'
+            
+            cursor.execute(query, params)
+            documents = cursor.fetchall()
+            
+            # Get available locations for filtering
+            cursor.execute('SELECT DISTINCT state FROM sds_documents WHERE state IS NOT NULL')
+            states = [row[0] for row in cursor.fetchall()]
+            
+            cursor.execute('SELECT DISTINCT city FROM sds_documents WHERE city IS NOT NULL')
+            cities = [row[0] for row in cursor.fetchall()]
+            
+            cursor.execute('SELECT DISTINCT department FROM sds_documents WHERE department IS NOT NULL')
+            departments = [row[0] for row in cursor.fetchall()]
+            
+            conn.close()
+            
+            # Format documents
+            formatted_docs = []
+            for doc in documents:
+                formatted_docs.append({
+                    'id': doc[0],
+                    'product_name': doc[1],
+                    'manufacturer': doc[2],
+                    'cas_number': doc[3],
+                    'file_name': doc[5],
+                    'state': doc[9],
+                    'city': doc[10],
+                    'department': doc[11],
+                    'building': doc[12],
+                    'room': doc[13],
+                    'created_at': doc[14]
+                })
+            
+            return jsonify({
+                'documents': formatted_docs,
+                'filters': {
+                    'states': states,
+                    'cities': cities,
+                    'departments': departments
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting SDS documents: {e}")
+            return jsonify({'error': str(e)})
+    
+    def generate_safety_label(self, label_type, document_id):
+        """Generate GHS or NFPA safety labels"""
         try:
             conn = sqlite3.connect('data/smart_ehs.db')
             cursor = conn.cursor()
             
-            # Count incidents
-            cursor.execute('SELECT COUNT(*) FROM incidents')
-            total_incidents = cursor.fetchone()[0]
-            
-            # Count SDS documents
-            cursor.execute('SELECT COUNT(*) FROM sds_documents')
-            total_sds = cursor.fetchone()[0]
-            
-            # Get recent incidents
-            cursor.execute('''
-                SELECT type, created_at FROM incidents 
-                ORDER BY created_at DESC LIMIT 5
-            ''')
-            recent_incidents = cursor.fetchall()
-            
+            cursor.execute('SELECT * FROM sds_documents WHERE id = ?', (document_id,))
+            doc = cursor.fetchone()
             conn.close()
             
+            if not doc:
+                return jsonify({'error': 'Document not found'})
+            
+            product_name = doc[1]
+            
+            if label_type == 'ghs':
+                label_html = self.generate_ghs_label(product_name, document_id)
+            elif label_type == 'nfpa':
+                label_html = self.generate_nfpa_label(product_name, document_id)
+            else:
+                return jsonify({'error': 'Invalid label type'})
+            
             return jsonify({
-                'total_incidents': total_incidents,
-                'total_sds_documents': total_sds,
-                'pending_actions': 0,
-                'high_risk_items': 0,
-                'recent_incidents': [
-                    {'type': r[0], 'date': r[1]} for r in recent_incidents
-                ]
+                'success': True,
+                'label_html': label_html,
+                'product_name': product_name
             })
             
         except Exception as e:
-            logger.error(f"Error getting dashboard stats: {e}")
+            logger.error(f"Error generating label: {e}")
             return jsonify({'error': str(e)})
     
-    def get_main_template(self):
-        """Return main HTML template"""
-        return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart EHS Management System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .chat-message { animation: fadeIn 0.3s ease-in; margin-bottom: 1rem; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .ai-response { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .user-message { background: #3b82f6; color: white; margin-left: 2rem; }
-    </style>
-</head>
-
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-shield-alt text-blue-600 text-2xl"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Smart EHS System</h1>
-                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                        Live on Render
-                    </span>
-                </div>
+    def generate_ghs_label(self, product_name, document_id):
+        """Generate GHS label HTML"""
+        return f'''
+        <div class="ghs-label border-2 border-black p-4 bg-white" style="width: 4in; height: 6in;">
+            <div class="text-center border-b-2 border-black pb-2 mb-2">
+                <h2 class="text-lg font-bold">DANGER</h2>
+                <h3 class="text-md font-semibold">{product_name}</h3>
             </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Title Section -->
-        <div class="text-center mb-8">
-            <h2 class="text-4xl font-bold text-gray-800 mb-2">
-                🛡️ Smart EHS Management System
-            </h2>
-            <p class="text-gray-600 text-lg">AI-Powered Safety Management • Incident Reporting • Chemical Safety</p>
-        </div>
-
-        <!-- Dashboard Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Incidents</p>
-                        <p class="text-2xl font-semibold text-gray-900" id="totalIncidents">0</p>
+            <div class="hazard-pictograms mb-2">
+                <div class="flex justify-center space-x-2">
+                    <div class="w-8 h-8 border border-red-500 bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-fire text-red-600"></i>
                     </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center">
-                    <i class="fas fa-file-alt text-blue-500 text-2xl"></i>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">SDS Documents</p>
-                        <p class="text-2xl font-semibold text-gray-900" id="totalSDS">0</p>
+                    <div class="w-8 h-8 border border-red-500 bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-skull text-red-600"></i>
                     </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center">
-                    <i class="fas fa-tasks text-yellow-500 text-2xl"></i>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Pending Actions</p>
-                        <p class="text-2xl font-semibold text-gray-900" id="pendingActions">0</p>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center">
-                    <i class="fas fa-heartbeat text-green-500 text-2xl"></i>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">System Status</p>
-                        <p class="text-2xl font-semibold text-gray-900">Online</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat Interface -->
-        <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6 border-b border-gray-200">
-                    <div class="flex items-center space-x-3">
-                        <i class="fas fa-robot text-blue-600 text-xl"></i>
-                        <h3 class="text-lg font-semibold text-gray-800">EHS Assistant</h3>
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                            AI Powered
-                        </span>
-                    </div>
-                </div>
-                <div class="h-96 overflow-y-auto p-6 space-y-4" id="chatContainer">
-                    <!-- Welcome Message -->
-                    <div class="chat-message ai-response p-4 rounded-lg max-w-4/5">
-                        <div class="flex items-start space-x-3">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-robot text-white"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <span class="font-semibold">EHS Assistant</span>
-                                    <span class="text-xs opacity-75">Just now</span>
-                                </div>
-                                <div>Welcome to the Smart EHS System! I can help you with:
-                                <ul class="mt-2 space-y-1">
-                                    <li>• 🚨 Report incidents - workplace injuries, accidents, near misses</li>
-                                    <li>• 📄 Chemical safety - SDS information and hazard data</li>
-                                    <li>• ⚠️ Safety concerns - hazard identification and reporting</li>
-                                    <li>• 📊 Risk assessment - evaluate workplace risks</li>
-                                </ul>
-                                <p class="mt-2">Try: "I need to report an incident" or "Tell me about chemical safety"</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-6 border-t border-gray-200">
-                    <div class="flex space-x-4">
-                        <input 
-                            type="text" 
-                            id="chatInput"
-                            placeholder="Ask about safety, report incidents, or get help..."
-                            class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                        <button 
-                            id="sendBtn"
-                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <button onclick="sendQuickMessage('I need to report an incident')" 
-                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
-                            Report Incident
-                        </button>
-                        <button onclick="sendQuickMessage('Tell me about chemical safety')" 
-                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
-                            Chemical Safety
-                        </button>
-                        <button onclick="sendQuickMessage('I have a safety concern')" 
-                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
-                            Safety Concern
-                        </button>
-                        <button onclick="sendQuickMessage('Help me assess risk')" 
-                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200">
-                            Risk Assessment
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDashboardStats();
-            setupEventListeners();
-        });
-
-        function setupEventListeners() {
-            document.getElementById('sendBtn').addEventListener('click', sendMessage);
-            document.getElementById('chatInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendMessage();
-            });
-        }
-
-        function sendQuickMessage(message) {
-            document.getElementById('chatInput').value = message;
-            sendMessage();
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            addChatMessage('You', message, 'user-message');
-            input.value = '';
-            
-            const typingId = addChatMessage('Assistant', 'Thinking...', 'ai-response opacity-50');
-            
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-                
-                const result = await response.json();
-                
-                document.getElementById(typingId).remove();
-                addChatMessage('EHS Assistant', result.response, 'ai-response');
-                
-            } catch (error) {
-                document.getElementById(typingId).remove();
-                addChatMessage('Assistant', 'Sorry, I encountered an error. Please try again.', 'ai-response');
-                console.error('Chat error:', error);
-            }
-        }
-
-        function addChatMessage(sender, message, className) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            const messageId = 'msg-' + Date.now();
-            
-            messageDiv.id = messageId;
-            messageDiv.className = `chat-message ${className} p-4 rounded-lg max-w-4/5`;
-            
-            if (className.includes('user-message')) {
-                messageDiv.classList.add('ml-auto');
-            }
-            
-            const icon = sender === 'You' ? 'fas fa-user' : 'fas fa-robot';
-            
-            messageDiv.innerHTML = `
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0">
-                        <i class="${icon}"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center space-x-2 mb-1">
-                            <span class="font-semibold">${sender}</span>
-                            <span class="text-xs opacity-75">${new Date().toLocaleTimeString()}</span>
-                        </div>
-                        <div class="whitespace-pre-wrap">${message}</div>
-                    </div>
-                </div>
-            `;
-            
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            return messageId;
-        }
-
-        async function loadDashboardStats() {
-            try {
-                const response = await fetch('/api/dashboard-stats');
-                const stats = await response.json();
-                
-                document.getElementById('totalIncidents').textContent = stats.total_incidents;
-                document.getElementById('totalSDS').textContent = stats.total_sds_documents;
-                document.getElementById('pendingActions').textContent = stats.pending_actions;
-                
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
-        }
-    </script>
-</body>
-</html>'''
-
-# Create the Flask app instance
-app = SmartEHSSystem().app
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
