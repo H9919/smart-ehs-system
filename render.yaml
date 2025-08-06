@@ -1,0 +1,40 @@
+`yaml
+services:
+  - type: web
+    name: smart-ehs-system
+    env: python
+    runtime: python
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python -c "
+      import os
+      import sqlite3
+      from pathlib import Path
+      
+      # Create directories
+      for directory in ['static/uploads', 'static/exports', 'static/labels', 'data']:
+          Path(directory).mkdir(parents=True, exist_ok=True)
+          
+      # Initialize database
+      conn = sqlite3.connect('data/smart_ehs.db')
+      conn.close()
+      print('✅ Smart EHS System initialized successfully!')
+      "
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 2 --max-requests 1000
+    plan: free  # Change to 'starter' for $7/month with no sleep
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///data/smart_ehs.db
+      - key: USE_GPU
+        value: false
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/transformers_cache
+      - key: SENTENCE_TRANSFORMERS_HOME
+        value: /tmp/sentence_transformers
