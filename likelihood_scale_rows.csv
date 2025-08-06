@@ -1,0 +1,9 @@
+```csv
+score,label,description,keywords
+0,Impossible,The event cannot happen under current design or controls,"[""never"",""impossible"",""zero chance""]"
+2,Rare,Extremely unlikely but theoretically possible (once in 10+ years),"[""rare"",""unlikely"",""once in a decade""]"
+4,Unlikely,Could happen in exceptional cases (once every 5–10 years),"[""uncommon"",""doubtful"",""not expected""]"
+6,Possible,Might happen occasionally (once every 1–5 years),"[""possible"",""sometimes"",""may occur""]"
+8,Likely,Expected to happen regularly (once per year or more frequently),"[""likely"",""probable"",""expected""]"
+10,Almost Certain,Will almost certainly happen (multiple times per year),"[""certain"",""definite"",""will happen""]"
+```
