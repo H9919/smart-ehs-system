@@ -2,9 +2,11 @@ services:
   - type: web
     name: smart-ehs-system
     env: python
+    runtime: python-3.11.9
     buildCommand: |
+      python --version
       pip install --upgrade pip
-      pip install -r requirements.txt
+      pip install Flask==3.0.0 gunicorn==21.2.0 python-dotenv==1.0.0
       python -c "
       import os
       import sqlite3
@@ -13,13 +15,14 @@ services:
       # Create directories
       for directory in ['static/uploads', 'static/exports', 'static/labels', 'data']:
           Path(directory).mkdir(parents=True, exist_ok=True)
+          print(f'Created directory: {directory}')
           
       # Initialize database
       conn = sqlite3.connect('data/smart_ehs.db')
       conn.close()
       print('✅ Smart EHS System initialized successfully!')
       "
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1 --worker-class sync
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 120 --workers 1
     plan: free
     envVars:
       - key: SECRET_KEY
