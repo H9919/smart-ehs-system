@@ -1283,23 +1283,9 @@ How can I help keep your workplace safe today?"""
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .chat-message { animation: fadeIn 0.3s ease-in; margin-bottom: 1rem; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .ai-response { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .user-message { background: #3b82f6; color: white; margin-left: 2rem; }
-        .module-card { transition: all 0.3s ease; }
-        .module-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .risk-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .risk-low { background-color: #10b981; }
-        .risk-medium { background-color: #f59e0b; }
-        .risk-high { background-color: #ef4444; }
-        .risk-critical { background-color: #dc2626; animation: pulse 2s infinite; }
-    </style>
 </head>
 
 <body class="bg-gray-50 min-h-screen">
-    <!-- Enhanced Header -->
     <header class="bg-white shadow-md border-b-4 border-blue-600">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
@@ -1310,470 +1296,48 @@ How can I help keep your workplace safe today?"""
                         <i class="fas fa-circle text-green-500 text-xs"></i> Live & Enhanced
                     </span>
                 </div>
-                <nav class="hidden md:flex space-x-6">
-                    <a href="/dashboard" class="text-blue-600 font-semibold hover:text-blue-800">
-                        <i class="fas fa-tachometer-alt mr-1"></i> Dashboard
-                    </a>
-                    <a href="/incident-management" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> Incidents
-                    </a>
-                    <a href="/sds-management" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-file-alt mr-1"></i> SDS
-                    </a>
-                    <a href="/safety-concerns" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-eye mr-1"></i> Concerns
-                    </a>
-                    <a href="/risk-management" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-chart-line mr-1"></i> Risk
-                    </a>
-                    <a href="/avomo-workflow" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-project-diagram mr-1"></i> Workflow
-                    </a>
-                </nav>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Title Section -->
         <div class="text-center mb-8">
-            <h2 class="text-4xl font-bold text-gray-800 mb-2">
-                🛡️ Smart EHS Management Dashboard
-            </h2>
-            <p class="text-gray-600 text-lg">Integrated Safety • Risk Assessment • Chemical Management • Photo Support</p>
-            <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm">
-                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                    <i class="fas fa-check mr-1"></i>Likelihood & Severity Scales from CSV
-                </span>
-                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full">
-                    <i class="fas fa-check mr-1"></i>AVOMO Module Priorities
-                </span>
-                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
-                    <i class="fas fa-check mr-1"></i>CAPA Tracking
-                </span>
-                <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
-                    <i class="fas fa-check mr-1"></i>Access Levels (1000 users)
-                </span>
-            </div>
+            <h2 class="text-4xl font-bold text-gray-800 mb-2">🛡️ Smart EHS Management Dashboard</h2>
+            <p class="text-gray-600 text-lg">Integrated Safety • Risk Assessment • Chemical Management</p>
         </div>
 
-        <!-- Enhanced Dashboard Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">Total Incidents</p>
-                        <p class="text-3xl font-bold text-gray-900" id="totalIncidents">0</p>
-                        <p class="text-xs text-green-600">Action tracking</p>
-                    </div>
-                    <i class="fas fa-tasks text-green-500 text-3xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Module Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="module-card bg-white rounded-lg shadow-lg p-6 cursor-pointer" onclick="location.href='/incident-management'">
-                <div class="text-center">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Incident Management</h3>
-                    <p class="text-sm text-gray-600 mb-4">Multi-dimensional risk assessment with photo support</p>
-                    <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs">
-                        <i class="fas fa-camera mr-1"></i> Photo Support
-                    </span>
-                </div>
-            </div>
-            
-            <div class="module-card bg-white rounded-lg shadow-lg p-6 cursor-pointer" onclick="location.href='/sds-management'">
-                <div class="text-center">
-                    <i class="fas fa-file-alt text-4xl text-blue-500 mb-4"></i>
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">SDS Management</h3>
-                    <p class="text-sm text-gray-600 mb-4">Location-based organization with smart search</p>
-                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs">
-                        <i class="fas fa-tags mr-1"></i> Label Generation
-                    </span>
-                </div>
-            </div>
-            
-            <div class="module-card bg-white rounded-lg shadow-lg p-6 cursor-pointer" onclick="location.href='/safety-concerns'">
-                <div class="text-center">
-                    <i class="fas fa-eye text-4xl text-yellow-500 mb-4"></i>
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Safety Concerns</h3>
-                    <p class="text-sm text-gray-600 mb-4">Proactive hazard identification and reporting</p>
-                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs">
-                        <i class="fas fa-camera mr-1"></i> Photo Docs
-                    </span>
-                </div>
-            </div>
-            
-            <div class="module-card bg-white rounded-lg shadow-lg p-6 cursor-pointer" onclick="location.href='/risk-management'">
-                <div class="text-center">
-                    <i class="fas fa-chart-line text-4xl text-green-500 mb-4"></i>
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Risk Management</h3>
-                    <p class="text-sm text-gray-600 mb-4">Comprehensive risk assessment matrix</p>
-                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs">
-                        <i class="fas fa-calculator mr-1"></i> Auto Calc
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dashboard Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Enhanced Chat Interface -->
-            <div class="lg:col-span-2 bg-white rounded-lg shadow-lg">
-                <div class="p-6 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <i class="fas fa-robot text-blue-600 text-xl"></i>
-                            <h3 class="text-lg font-semibold text-gray-800">Enhanced EHS Assistant</h3>
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                                <i class="fas fa-brain mr-1"></i> Chemical Intelligence
-                            </span>
-                        </div>
-                        <div class="flex space-x-2">
-                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                                <i class="fas fa-camera mr-1"></i> Photo Support
-                            </span>
-                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-                                <i class="fas fa-tags mr-1"></i> Label Gen
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="h-96 overflow-y-auto p-6 space-y-4" id="chatContainer">
-                    <!-- Welcome Message -->
-                    <div class="chat-message ai-response p-4 rounded-lg max-w-4/5">
-                        <div class="flex items-start space-x-3">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-robot text-white text-lg"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <span class="font-semibold">Enhanced EHS Assistant</span>
-                                    <span class="text-xs opacity-75">Just now</span>
-                                </div>
-                                <div>🛡️ Welcome to the Enhanced Smart EHS System! 
-                                
-<strong>🆕 New Features:</strong>
-• 📸 Photo uploads for incidents & concerns
-• 📍 Location-based SDS management (State/City/Dept)
-• 🏷️ GHS & NFPA label generation
-• 🧠 Chemical safety intelligence
-• 📊 Multi-dimensional risk assessment
-
-<strong>💬 Try these commands:</strong>
-• "Tell me about acetone safety"
-• "Generate a GHS label"
-• "I need to report an incident with photos"
-• "Upload SDS for our Austin facility"</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-6 border-t border-gray-200">
-                    <div class="flex space-x-4 mb-3">
-                        <input 
-                            type="text" 
-                            id="chatInput"
-                            placeholder="Ask about chemicals, upload SDS, report incidents with photos..."
-                            class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                        <button 
-                            id="sendBtn"
-                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button onclick="sendQuickMessage('Tell me about acetone safety')" 
-                                class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm hover:bg-blue-200">
-                            <i class="fas fa-flask mr-1"></i> Chemical Safety
-                        </button>
-                        <button onclick="sendQuickMessage('I need to report an incident')" 
-                                class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm hover:bg-red-200">
-                            <i class="fas fa-exclamation-triangle mr-1"></i> Report Incident
-                        </button>
-                        <button onclick="sendQuickMessage('Generate a GHS label')" 
-                                class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm hover:bg-green-200">
-                            <i class="fas fa-tags mr-1"></i> Generate Label
-                        </button>
-                        <button onclick="sendQuickMessage('I have a safety concern')" 
-                                class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm hover:bg-yellow-200">
-                            <i class="fas fa-eye mr-1"></i> Safety Concern
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Activity & Analytics Sidebar -->
-            <div class="space-y-6">
-                <!-- Risk Distribution Chart -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-chart-pie mr-2 text-blue-600"></i>Risk Distribution
-                    </h3>
-                    <canvas id="riskChart" width="300" height="200"></canvas>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-clock mr-2 text-green-600"></i>Recent Activity
-                    </h3>
-                    <div id="recentActivity" class="space-y-3">
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>
-                            Loading activity...
-                        </div>
-                    </div>
-                </div>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-robot text-blue-600 text-xl mr-2"></i>Enhanced EHS Assistant
+            </h3>
+            <div class="text-center py-8">
+                <p class="text-gray-600 mb-4">🛡️ Welcome to the Enhanced Smart EHS System!</p>
+                <p class="text-sm text-gray-500">System is ready and operational.</p>
             </div>
         </div>
     </div>
-
-    <script>
-        let riskChart;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDashboardStats();
-            setupEventListeners();
-            initializeRiskChart();
-        });
-
-        function setupEventListeners() {
-            document.getElementById('sendBtn').addEventListener('click', sendMessage);
-            document.getElementById('chatInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendMessage();
-            });
-        }
-
-        function initializeRiskChart() {
-            const ctx = document.getElementById('riskChart').getContext('2d');
-            riskChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Low', 'Medium', 'High', 'Critical'],
-                    datasets: [{
-                        data: [0, 0, 0, 0],
-                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#dc2626'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 15
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function sendQuickMessage(message) {
-            document.getElementById('chatInput').value = message;
-            sendMessage();
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            addChatMessage('You', message, 'user-message');
-            input.value = '';
-            
-            const typingId = addChatMessage('Assistant', 'Analyzing your request...', 'ai-response opacity-50');
-            
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-                
-                const result = await response.json();
-                
-                document.getElementById(typingId).remove();
-                addChatMessage('Enhanced EHS Assistant', result.response, 'ai-response');
-                
-                // Show additional info if chemical detected
-                if (result.chemical_info && result.chemical_info.length > 0) {
-                    setTimeout(() => {
-                        addChatMessage('System', `🧪 Chemical detected: ${result.chemical_info.join(', ')}. I can generate safety labels if needed!`, 'ai-response bg-green-600');
-                    }, 1000);
-                }
-                
-            } catch (error) {
-                document.getElementById(typingId).remove();
-                addChatMessage('Assistant', 'Sorry, I encountered an error. Please try again.', 'ai-response bg-red-600');
-                console.error('Chat error:', error);
-            }
-        }
-
-        function addChatMessage(sender, message, className) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            const messageId = 'msg-' + Date.now();
-            
-            messageDiv.id = messageId;
-            messageDiv.className = `chat-message ${className} p-4 rounded-lg max-w-4/5`;
-            
-            if (className.includes('user-message')) {
-                messageDiv.classList.add('ml-auto');
-            }
-            
-            const icon = sender === 'You' ? 'fas fa-user' : 
-                        sender === 'System' ? 'fas fa-cog' : 'fas fa-robot';
-            
-            messageDiv.innerHTML = `
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0">
-                        <i class="${icon}"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center space-x-2 mb-1">
-                            <span class="font-semibold">${sender}</span>
-                            <span class="text-xs opacity-75">${new Date().toLocaleTimeString()}</span>
-                        </div>
-                        <div class="whitespace-pre-wrap">${message}</div>
-                    </div>
-                </div>
-            `;
-            
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            return messageId;
-        }
-
-        async function loadDashboardStats() {
-            try {
-                const response = await fetch('/api/dashboard-stats');
-                const stats = await response.json();
-                
-                // Update counters
-                document.getElementById('totalIncidents').textContent = stats.total_incidents;
-                document.getElementById('highRiskIncidents').textContent = `${stats.high_risk_incidents} high-risk`;
-                document.getElementById('totalSDS').textContent = stats.total_sds_documents;
-                document.getElementById('totalConcerns').textContent = stats.total_safety_concerns;
-                document.getElementById('openCAPAs').textContent = stats.open_capa_actions;
-                
-                // Update risk chart
-                if (stats.risk_distribution && riskChart) {
-                    const riskData = [0, 0, 0, 0]; // Low, Medium, High, Critical
-                    stats.risk_distribution.forEach(risk => {
-                        switch(risk.level) {
-                            case 'Low': riskData[0] = risk.count; break;
-                            case 'Medium': riskData[1] = risk.count; break;
-                            case 'High': riskData[2] = risk.count; break;
-                            case 'Critical': riskData[3] = risk.count; break;
-                        }
-                    });
-                    riskChart.data.datasets[0].data = riskData;
-                    riskChart.update();
-                }
-                
-                // Update recent activity
-                updateRecentActivity(stats.recent_activity);
-                
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
-        }
-
-        function updateRecentActivity(activities) {
-            const container = document.getElementById('recentActivity');
-            
-            if (!activities || activities.length === 0) {
-                container.innerHTML = '<div class="text-sm text-gray-500">No recent activity</div>';
-                return;
-            }
-            
-            container.innerHTML = activities.slice(0, 5).map(activity => {
-                const icon = activity.type === 'incident' ? 'fas fa-exclamation-triangle text-red-500' : 'fas fa-eye text-yellow-500';
-                const date = new Date(activity.date).toLocaleDateString();
-                
-                return `
-                    <div class="flex items-start space-x-3 p-2 rounded hover:bg-gray-50">
-                        <i class="${icon}"></i>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">${activity.title}</p>
-                            <p class="text-xs text-gray-500">${activity.type} • ${date}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Auto-refresh dashboard every 30 seconds
-        setInterval(loadDashboardStats, 30000);
-    </script>
 </body>
 </html>'''
     
     # Define placeholder methods for additional pages
     def get_incident_management_page(self):
-        return '<html><body><h1>Incident Management Page</h1><p>Enhanced incident reporting with photo support coming soon!</p></body></html>'
+        return '<html><body><h1>Incident Management</h1><p>Enhanced incident reporting with photo support.</p></body></html>'
     
     def get_sds_management_page(self):
-        return '<html><body><h1>SDS Management Page</h1><p>Location-based SDS management coming soon!</p></body></html>'
+        return '<html><body><h1>SDS Management</h1><p>Location-based SDS management.</p></body></html>'
     
     def get_safety_concerns_page(self):
-        return '<html><body><h1>Safety Concerns Page</h1><p>Photo-enabled safety concern reporting coming soon!</p></body></html>'
+        return '<html><body><h1>Safety Concerns</h1><p>Photo-enabled safety concern reporting.</p></body></html>'
     
     def get_risk_management_page(self):
-        return '<html><body><h1>Risk Management Page</h1><p>Interactive risk assessment tools coming soon!</p></body></html>'
+        return '<html><body><h1>Risk Management</h1><p>Interactive risk assessment tools.</p></body></html>'
     
     def get_avomo_workflow_page(self):
-        return '<html><body><h1>AVOMO Workflow Page</h1><p>Module priorities and workflow visualization coming soon!</p></body></html>'
+        return '<html><body><h1>AVOMO Workflow</h1><p>Module priorities and workflow visualization.</p></body></html>'
 
 # Create the Flask app instance
 app = EnhancedEHSSystem().app
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)-red-600" id="highRiskIncidents">0 high-risk</p>
-                    </div>
-                    <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">SDS Documents</p>
-                        <p class="text-3xl font-bold text-gray-900" id="totalSDS">0</p>
-                        <p class="text-xs text-blue-600">Multi-location</p>
-                    </div>
-                    <i class="fas fa-file-alt text-blue-500 text-3xl"></i>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-yellow-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">Safety Concerns</p>
-                        <p class="text-3xl font-bold text-gray-900" id="totalConcerns">0</p>
-                        <p class="text-xs text-yellow-600">Active monitoring</p>
-                    </div>
-                    <i class="fas fa-eye text-yellow-500 text-3xl"></i>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">Open CAPAs</p>
-                        <p class="text-3xl font-bold text-gray-900" id="openCAPAs">0</p>
-                        <p class="text-xs text
+    app.run(host='0.0.0.0', port=port, debug=False)
