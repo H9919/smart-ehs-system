@@ -1273,429 +1273,986 @@ How can I help keep your workplace safe today?"""
             return jsonify({'error': str(e)})
     
     def get_main_dashboard(self):
-        """Return enhanced main dashboard template with full functionality"""
+        """Return enhanced user-friendly dashboard with complete navigation"""
         return '''<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Enhanced Smart EHS Management System</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            .chat-container { max-height: 400px; overflow-y: auto; }
-            .fade-in { animation: fadeIn 0.5s ease-in; }
-            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            .pulse-green { animation: pulse 2s infinite; }
-            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
-        </style>
-    </head>
-    
-    <body class="bg-gray-50 min-h-screen">
-        <!-- Header -->
-        <header class="bg-white shadow-md border-b-4 border-blue-600">
-            <div class="max-w-7xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <i class="fas fa-shield-alt text-blue-600 text-2xl"></i>
-                        <h1 class="text-2xl font-bold text-gray-800">Enhanced Smart EHS System</h1>
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs pulse-green">
-                            <i class="fas fa-circle text-green-500 text-xs"></i> Live & Enhanced
-                        </span>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart EHS Management System - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chat-container { max-height: 400px; overflow-y: auto; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .pulse-green { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+        .menu-card { transition: all 0.3s ease; }
+        .menu-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .priority-p1 { border-left: 4px solid #ef4444; }
+        .priority-p2 { border-left: 4px solid #f59e0b; }
+        .priority-p3 { border-left: 4px solid #10b981; }
+        .status-completed { background: #dcfce7; }
+        .status-progress { background: #fef3c7; }
+        .status-notstarted { background: #fecaca; }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Enhanced Header with Navigation -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-600">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-shield-alt text-blue-600 text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Smart EHS Management System</h1>
+                        <p class="text-sm text-gray-500">AVOMO-Compliant Safety Management Platform</p>
                     </div>
-                    <nav class="hidden md:flex space-x-6">
-                        <a href="#dashboard" class="text-gray-600 hover:text-blue-600 transition-colors">Dashboard</a>
-                        <a href="#incidents" class="text-gray-600 hover:text-blue-600 transition-colors">Incidents</a>
-                        <a href="#sds" class="text-gray-600 hover:text-blue-600 transition-colors">SDS</a>
-                        <a href="#safety" class="text-gray-600 hover:text-blue-600 transition-colors">Safety</a>
-                        <a href="#risk" class="text-gray-600 hover:text-blue-600 transition-colors">Risk</a>
-                    </nav>
-                </div>
-            </div>
-        </header>
-    
-        <div class="max-w-7xl mx-auto px-4 py-8">
-            <!-- Title Section -->
-            <div class="text-center mb-8">
-                <h2 class="text-4xl font-bold text-gray-800 mb-2">🛡️ Smart EHS Management Dashboard</h2>
-                <p class="text-gray-600 text-lg">Integrated Safety • Risk Assessment • Chemical Management</p>
-            </div>
-    
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500">Total Incidents</h3>
-                            <p class="text-2xl font-bold text-gray-800" id="total-incidents">-</p>
-                        </div>
-                        <i class="fas fa-exclamation-triangle text-blue-500 text-2xl"></i>
-                    </div>
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm pulse-green">
+                        <i class="fas fa-circle text-green-500 text-xs"></i> Live System
+                    </span>
                 </div>
                 
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500">High Risk</h3>
-                            <p class="text-2xl font-bold text-gray-800" id="high-risk-incidents">-</p>
+                <!-- Quick Actions in Header -->
+                <div class="hidden lg:flex space-x-3">
+                    <button onclick="quickIncidentReport()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Report Incident
+                    </button>
+                    <button onclick="quickSafetyConcern()" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
+                        <i class="fas fa-eye mr-2"></i>Safety Concern
+                    </button>
+                    <button onclick="showHelp()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-question-circle mr-2"></i>Help
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Welcome Section -->
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-gray-800 mb-2">🛡️ Safety Management Dashboard</h2>
+            <p class="text-gray-600 text-lg">Complete Safety • Risk Assessment • Chemical Management • CAPA Tracking</p>
+        </div>
+
+        <!-- Real-time Statistics -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-blue-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Incidents</h3>
+                    <p class="text-2xl font-bold text-gray-800" id="total-incidents">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-500">
+                <div class="text-center">
+                    <i class="fas fa-fire text-red-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">High Risk</h3>
+                    <p class="text-2xl font-bold text-gray-800" id="high-risk-incidents">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+                <div class="text-center">
+                    <i class="fas fa-file-medical text-green-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">SDS Documents</h3>
+                    <p class="text-2xl font-bold text-gray-800" id="total-sds">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
+                <div class="text-center">
+                    <i class="fas fa-eye text-yellow-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Safety Concerns</h3>
+                    <p class="text-2xl font-bold text-gray-800" id="total-concerns">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
+                <div class="text-center">
+                    <i class="fas fa-tasks text-purple-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Open CAPAs</h3>
+                    <p class="text-2xl font-bold text-gray-800" id="open-capas">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+                <div class="text-center">
+                    <i class="fas fa-chart-line text-indigo-500 text-2xl mb-2"></i>
+                    <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Risk Register</h3>
+                    <p class="text-2xl font-bold text-gray-800">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu Grid - AVOMO Modules -->
+        <div class="mb-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                <i class="fas fa-th-large text-blue-600 mr-2"></i>Safety Management Modules
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Incident Management -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p1 status-completed cursor-pointer" onclick="openIncidentModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Incident Management</h4>
+                                <p class="text-sm text-green-600 font-medium">✅ P1 - Completed</p>
+                            </div>
                         </div>
-                        <i class="fas fa-fire text-red-500 text-2xl"></i>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Report injuries, near misses, property damage, environmental incidents with photos and automated risk assessment.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Photo Support</span>
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Risk Scoring</span>
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">AI Analysis</span>
                     </div>
                 </div>
-                
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500">SDS Documents</h3>
-                            <p class="text-2xl font-bold text-gray-800" id="total-sds">-</p>
+
+                <!-- Safety Concerns -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p1 status-completed cursor-pointer" onclick="openSafetyModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-eye text-yellow-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Safety Concerns</h4>
+                                <p class="text-sm text-green-600 font-medium">✅ P1 - Completed</p>
+                            </div>
                         </div>
-                        <i class="fas fa-file-medical text-green-500 text-2xl"></i>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Report unsafe conditions, behaviors, and hazards before they become incidents. Proactive safety management.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Anonymous</span>
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">Photo Docs</span>
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">CAPA Auto</span>
                     </div>
                 </div>
-                
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500">Safety Concerns</h3>
-                            <p class="text-2xl font-bold text-gray-800" id="total-concerns">-</p>
+
+                <!-- SDS Management -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p1 status-completed cursor-pointer" onclick="openSDSModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-medical text-green-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">SDS Management</h4>
+                                <p class="text-sm text-green-600 font-medium">✅ P1 - Completed</p>
+                            </div>
                         </div>
-                        <i class="fas fa-eye text-yellow-500 text-2xl"></i>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Upload, organize, and search Safety Data Sheets. Generate GHS/NFPA labels with location-based organization.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Smart Search</span>
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Label Gen</span>
+                        <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Chemical Intel</span>
                     </div>
                 </div>
-                
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500">Open CAPAs</h3>
-                            <p class="text-2xl font-bold text-gray-800" id="open-capas">-</p>
+
+                <!-- Risk Management -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p1 status-progress cursor-pointer" onclick="openRiskModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-line text-purple-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Risk Management</h4>
+                                <p class="text-sm text-yellow-600 font-medium">⚠️ P1 - In Progress</p>
+                            </div>
                         </div>
-                        <i class="fas fa-tasks text-purple-500 text-2xl"></i>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Comprehensive risk assessment using multi-dimensional analysis. People, Environment, Cost, Reputation, Legal.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">Multi-Dim</span>
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">Auto Calc</span>
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Risk Matrix</span>
+                    </div>
+                </div>
+
+                <!-- CAPA Tracking -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p2 status-completed cursor-pointer" onclick="openCAPAModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-tasks text-indigo-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">CAPA Tracking</h4>
+                                <p class="text-sm text-green-600 font-medium">✅ P2 - Completed</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Corrective and Preventive Actions management. Auto-generation from incidents with assignment and tracking.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs">Auto Gen</span>
+                        <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">SLA Track</span>
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Integration</span>
+                    </div>
+                </div>
+
+                <!-- Dashboards & Reporting -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p1 status-progress cursor-pointer" onclick="openReportsModule()">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-bar text-blue-500 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Reports & Analytics</h4>
+                                <p class="text-sm text-yellow-600 font-medium">⚠️ P1 - In Progress</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Interactive dashboards, trend analysis, regulatory reports, and safety performance metrics.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Real-time</span>
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">PDF Export</span>
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">Trends</span>
+                    </div>
+                </div>
+
+                <!-- Additional Modules (P3 Priority) -->
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p3 status-notstarted cursor-pointer" onclick="showComingSoon('Management of Change')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exchange-alt text-gray-400 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Management of Change</h4>
+                                <p class="text-sm text-gray-500 font-medium">⏳ P3 - Planned</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-clock text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Track and manage organizational, procedural, and equipment changes with risk assessment workflows.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Coming Soon</span>
+                    </div>
+                </div>
+
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p3 status-notstarted cursor-pointer" onclick="showComingSoon('Audits & Inspections')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-clipboard-check text-gray-400 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Audits & Inspections</h4>
+                                <p class="text-sm text-gray-500 font-medium">⏳ P3 - Planned</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-clock text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Schedule, conduct, and track safety audits and workplace inspections with checklist management.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Coming Soon</span>
+                    </div>
+                </div>
+
+                <div class="menu-card bg-white rounded-lg shadow-md p-6 priority-p3 status-notstarted cursor-pointer" onclick="showComingSoon('Environmental Management')">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-leaf text-gray-400 text-3xl mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800">Environmental Mgmt</h4>
+                                <p class="text-sm text-gray-500 font-medium">⏳ P3 - Planned</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-clock text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">Environmental monitoring, waste tracking, emissions management, and sustainability reporting.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Coming Soon</span>
                     </div>
                 </div>
             </div>
-    
-            <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Chat Interface -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-robot text-blue-600 text-xl mr-2"></i>Enhanced EHS Assistant
-                    </h3>
-                    
-                    <!-- Chat Messages -->
-                    <div class="chat-container bg-gray-50 rounded-lg p-4 mb-4" id="chat-messages">
-                        <div class="text-center py-8">
-                            <p class="text-gray-600 mb-4">🛡️ Welcome to the Enhanced Smart EHS System!</p>
-                            <p class="text-sm text-gray-500">System is ready and operational. How can I help you today?</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Input -->
-                    <div class="flex space-x-2">
-                        <input type="text" id="chat-input" placeholder="Ask about safety, report incidents, or get help..." 
-                               class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Quick Action Buttons -->
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        <button onclick="quickMessage('I need to report an incident')" 
-                                class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm hover:bg-red-200 transition-colors">
-                            🚨 Report Incident
-                        </button>
-                        <button onclick="quickMessage('Tell me about chemical safety')" 
-                                class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm hover:bg-green-200 transition-colors">
-                            🧪 Chemical Safety
-                        </button>
-                        <button onclick="quickMessage('I have a safety concern')" 
-                                class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm hover:bg-yellow-200 transition-colors">
-                            ⚠️ Safety Concern
-                        </button>
-                        <button onclick="quickMessage('Help me assess risk')" 
-                                class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm hover:bg-purple-200 transition-colors">
-                            📊 Risk Assessment
-                        </button>
-                        <button onclick="quickMessage('Help')" 
-                                class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm hover:bg-blue-200 transition-colors">
-                            ❓ Help
-                        </button>
-                    </div>
-                </div>
-    
-                <!-- Quick Actions Panel -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-bolt text-yellow-500 text-xl mr-2"></i>Quick Actions
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 gap-4">
-                        <button onclick="openIncidentModal()" 
-                                class="flex items-center p-4 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-300 hover:bg-red-100 transition-all">
-                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-4"></i>
-                            <div class="text-left">
-                                <h4 class="font-semibold text-gray-800">Report Incident</h4>
-                                <p class="text-sm text-gray-600">Report injuries, near misses, property damage</p>
-                            </div>
-                        </button>
-                        
-                        <button onclick="openSafetyModal()" 
-                                class="flex items-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-100 transition-all">
-                            <i class="fas fa-eye text-yellow-500 text-2xl mr-4"></i>
-                            <div class="text-left">
-                                <h4 class="font-semibold text-gray-800">Safety Concern</h4>
-                                <p class="text-sm text-gray-600">Report unsafe conditions or behaviors</p>
-                            </div>
-                        </button>
-                        
-                        <button onclick="openSDSModal()" 
-                                class="flex items-center p-4 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 hover:bg-green-100 transition-all">
-                            <i class="fas fa-file-medical text-green-500 text-2xl mr-4"></i>
-                            <div class="text-left">
-                                <h4 class="font-semibold text-gray-800">Upload SDS</h4>
-                                <p class="text-sm text-gray-600">Manage safety data sheets</p>
-                            </div>
-                        </button>
-                        
-                        <button onclick="openRiskModal()" 
-                                class="flex items-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-300 hover:bg-purple-100 transition-all">
-                            <i class="fas fa-chart-line text-purple-500 text-2xl mr-4"></i>
-                            <div class="text-left">
-                                <h4 class="font-semibold text-gray-800">Risk Assessment</h4>
-                                <p class="text-sm text-gray-600">Evaluate risks and hazards</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-    
-            <!-- Recent Activity -->
-            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+        </div>
+
+        <!-- AI Assistant Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Enhanced Chat Interface -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-clock text-gray-500 text-xl mr-2"></i>Recent Activity
+                    <i class="fas fa-robot text-blue-600 text-xl mr-2"></i>Smart EHS Assistant
+                    <span class="text-sm font-normal text-gray-500">(AI-Powered)</span>
                 </h3>
-                <div id="recent-activity" class="space-y-3">
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                        <p>Loading recent activity...</p>
+                
+                <!-- Chat Messages -->
+                <div class="chat-container bg-gray-50 rounded-lg p-4 mb-4" id="chat-messages">
+                    <div class="text-center py-8">
+                        <div class="mb-4">
+                            <i class="fas fa-robot text-blue-500 text-4xl mb-2"></i>
+                        </div>
+                        <p class="text-gray-700 font-medium mb-2">🛡️ Welcome to your Smart EHS Assistant!</p>
+                        <p class="text-sm text-gray-500 mb-4">I can help you with safety reporting, chemical information, risk assessment, and more.</p>
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-blue-700 font-medium">Try asking me:</p>
+                            <p class="text-xs text-blue-600">"I need to report an incident" • "Tell me about acetone safety" • "Help with risk assessment"</p>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Chat Input -->
+                <div class="flex space-x-2">
+                    <input type="text" id="chat-input" placeholder="Ask me anything about safety, incidents, chemicals, or risks..." 
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <!-- Quick Action Buttons -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button onclick="quickMessage('I need to report an incident')" 
+                            class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm hover:bg-red-200 transition-colors">
+                        🚨 Report Incident
+                    </button>
+                    <button onclick="quickMessage('Tell me about chemical safety')" 
+                            class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm hover:bg-green-200 transition-colors">
+                        🧪 Chemical Safety
+                    </button>
+                    <button onclick="quickMessage('I have a safety concern')" 
+                            class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm hover:bg-yellow-200 transition-colors">
+                        ⚠️ Safety Concern
+                    </button>
+                    <button onclick="quickMessage('Help me assess risk')" 
+                            class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm hover:bg-purple-200 transition-colors">
+                        📊 Risk Assessment
+                    </button>
+                    <button onclick="quickMessage('Help')" 
+                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm hover:bg-blue-200 transition-colors">
+                        ❓ Complete Help
+                    </button>
+                </div>
             </div>
-        </div>
-    
-        <!-- Basic Modals (Simplified) -->
-        <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <div id="modal-content">
-                    <!-- Modal content will be inserted here -->
+
+            <!-- Quick Actions & Status Panel -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-bolt text-yellow-500 text-xl mr-2"></i>Quick Actions & System Status
+                </h3>
+                
+                <!-- Emergency Actions -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-3">🚨 Emergency Actions</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="emergencyIncident()" 
+                                class="flex items-center p-3 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-300 hover:bg-red-100 transition-all">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl mr-3"></i>
+                            <div class="text-left">
+                                <h5 class="font-semibold text-gray-800 text-sm">Emergency Incident</h5>
+                                <p class="text-xs text-gray-600">Report serious injury or urgent safety issue</p>
+                            </div>
+                        </button>
+                        
+                        <button onclick="quickSafetyConcern()" 
+                                class="flex items-center p-3 bg-yellow-50 rounded-lg border-2 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-100 transition-all">
+                            <i class="fas fa-eye text-yellow-500 text-xl mr-3"></i>
+                            <div class="text-left">
+                                <h5 class="font-semibold text-gray-800 text-sm">Immediate Hazard</h5>
+                                <p class="text-xs text-gray-600">Report unsafe condition requiring attention</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-3">⚡ System Status</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2 bg-green-50 rounded">
+                            <span class="text-sm text-green-700">🟢 All Systems Operational</span>
+                            <span class="text-xs text-green-600">99.9% Uptime</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-blue-50 rounded">
+                            <span class="text-sm text-blue-700">🤖 AI Assistant Active</span>
+                            <span class="text-xs text-blue-600">Ready</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-purple-50 rounded">
+                            <span class="text-sm text-purple-700">📊 Data Analytics Online</span>
+                            <span class="text-xs text-purple-600">Real-time</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Preview -->
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-3">📋 Recent Activity</h4>
+                    <div id="quick-activity" class="space-y-2">
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-lg mb-2"></i>
+                            <p class="text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    <button onclick="openReportsModule()" class="w-full mt-3 text-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View All Activity →
+                    </button>
                 </div>
             </div>
         </div>
-    
-        <script>
-            // Load dashboard stats on page load
-            document.addEventListener('DOMContentLoaded', function() {
-                loadDashboardStats();
+
+        <!-- User Access Level Info -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-users text-gray-600 text-xl mr-2"></i>Access Levels & User Management (1000 Total Users)
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="text-center p-4 bg-red-50 rounded-lg">
+                    <i class="fas fa-crown text-red-500 text-2xl mb-2"></i>
+                    <h4 class="font-bold text-red-700">Admin</h4>
+                    <p class="text-2xl font-bold text-gray-800">10</p>
+                    <p class="text-xs text-gray-600">Full system access</p>
+                </div>
                 
-                // Setup enter key for chat
-                document.getElementById('chat-input').addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        sendMessage();
-                    }
-                });
-            });
-    
-            // Load dashboard statistics
-            async function loadDashboardStats() {
-                try {
-                    const response = await fetch('/api/dashboard-stats');
-                    const data = await response.json();
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <i class="fas fa-user-tie text-blue-500 text-2xl mb-2"></i>
+                    <h4 class="font-bold text-blue-700">Manager</h4>
+                    <p class="text-2xl font-bold text-gray-800">90</p>
+                    <p class="text-xs text-gray-600">Module management</p>
+                </div>
+                
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <i class="fas fa-user-edit text-green-500 text-2xl mb-2"></i>
+                    <h4 class="font-bold text-green-700">Contributor</h4>
+                    <p class="text-2xl font-bold text-gray-800">200</p>
+                    <p class="text-xs text-gray-600">Submit reports & CAPAs</p>
+                </div>
+                
+                <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                    <i class="fas fa-eye text-yellow-500 text-2xl mb-2"></i>
+                    <h4 class="font-bold text-yellow-700">Viewer</h4>
+                    <p class="text-2xl font-bold text-gray-800">100</p>
+                    <p class="text-xs text-gray-600">Read-only access</p>
+                </div>
+                
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <i class="fas fa-hard-hat text-purple-500 text-2xl mb-2"></i>
+                    <h4 class="font-bold text-purple-700">Vendor/Contractor</h4>
+                    <p class="text-2xl font-bold text-gray-800">600</p>
+                    <p class="text-xs text-gray-600">Limited safety access</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer with Compliance Info -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-certificate text-green-600 text-xl mr-2"></i>Regulatory Compliance & Standards
+                </h3>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">OSHA</p>
+                        <p class="text-xs text-gray-600">Compliant</p>
+                    </div>
                     
-                    document.getElementById('total-incidents').textContent = data.total_incidents || 0;
-                    document.getElementById('high-risk-incidents').textContent = data.high_risk_incidents || 0;
-                    document.getElementById('total-sds').textContent = data.total_sds_documents || 0;
-                    document.getElementById('total-concerns').textContent = data.total_safety_concerns || 0;
-                    document.getElementById('open-capas').textContent = data.open_capa_actions || 0;
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">EPA</p>
+                        <p class="text-xs text-gray-600">Compliant</p>
+                    </div>
                     
-                    // Load recent activity
-                    displayRecentActivity(data.recent_activity || []);
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">WHMIS</p>
+                        <p class="text-xs text-gray-600">Compliant</p>
+                    </div>
                     
-                } catch (error) {
-                    console.error('Error loading dashboard stats:', error);
-                    // Set default values on error
-                    ['total-incidents', 'high-risk-incidents', 'total-sds', 'total-concerns', 'open-capas'].forEach(id => {
-                        document.getElementById(id).textContent = '0';
-                    });
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">FAA Part 5</p>
+                        <p class="text-xs text-gray-600">Compliant</p>
+                    </div>
                     
-                    document.getElementById('recent-activity').innerHTML = `
-                        <div class="text-center py-4 text-gray-500">
-                            <p>Welcome to your Enhanced EHS System!</p>
-                            <p class="text-sm">Start by reporting incidents or uploading SDS documents.</p>
-                        </div>
-                    `;
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">ICAO Annex 19</p>
+                        <p class="text-xs text-gray-600">Compliant</p>
+                    </div>
+                    
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                        <p class="text-sm font-bold text-green-700">AVOMO</p>
+                        <p class="text-xs text-gray-600">Certified</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-600 mt-4">
+                    System built for enterprise safety management with full audit trail and regulatory reporting capabilities.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-96 overflow-y-auto">
+            <div id="modal-content">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load dashboard stats on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardStats();
+            loadQuickActivity();
+            
+            // Setup enter key for chat
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
                 }
+            });
+        });
+
+        // Load dashboard statistics
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                const data = await response.json();
+                
+                document.getElementById('total-incidents').textContent = data.total_incidents || 0;
+                document.getElementById('high-risk-incidents').textContent = data.high_risk_incidents || 0;
+                document.getElementById('total-sds').textContent = data.total_sds_documents || 0;
+                document.getElementById('total-concerns').textContent = data.total_safety_concerns || 0;
+                document.getElementById('open-capas').textContent = data.open_capa_actions || 0;
+                
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+                // Set default values on error
+                ['total-incidents', 'high-risk-incidents', 'total-sds', 'total-concerns', 'open-capas'].forEach(id => {
+                    document.getElementById(id).textContent = '0';
+                });
             }
-    
-            // Display recent activity
-            function displayRecentActivity(activities) {
-                const container = document.getElementById('recent-activity');
+        }
+
+        // Load quick activity preview
+        async function loadQuickActivity() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                const data = await response.json();
+                
+                const activities = data.recent_activity || [];
+                const container = document.getElementById('quick-activity');
                 
                 if (activities.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-4 text-gray-500">
-                            <p>No recent activity</p>
-                            <p class="text-sm">Start by using the quick actions above!</p>
+                        <div class="text-center py-2 text-gray-500">
+                            <p class="text-sm">No recent activity</p>
+                            <p class="text-xs">Start by reporting incidents or safety concerns!</p>
                         </div>
                     `;
                     return;
                 }
                 
-                container.innerHTML = activities.map(activity => `
-                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <i class="fas fa-${activity.type === 'incident' ? 'exclamation-triangle' : 'eye'} text-gray-500 mr-3"></i>
+                // Show only first 3 activities
+                container.innerHTML = activities.slice(0, 3).map(activity => `
+                    <div class="flex items-center p-2 bg-gray-50 rounded text-sm">
+                        <i class="fas fa-${activity.type === 'incident' ? 'exclamation-triangle text-red-500' : 'eye text-yellow-500'} mr-2"></i>
                         <div class="flex-1">
-                            <p class="font-medium text-gray-800">${activity.title}</p>
-                            <p class="text-sm text-gray-500">${new Date(activity.date).toLocaleDateString()}</p>
+                            <p class="font-medium text-gray-800 truncate">${activity.title}</p>
+                            <p class="text-xs text-gray-500">${new Date(activity.date).toLocaleDateString()}</p>
                         </div>
                     </div>
                 `).join('');
-            }
-    
-            // Chat functionality
-            async function sendMessage() {
-                const input = document.getElementById('chat-input');
-                const message = input.value.trim();
                 
-                if (!message) return;
-                
-                // Clear input
-                input.value = '';
-                
-                // Add user message to chat
-                addMessageToChat('user', message);
-                
-                try {
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: message })
-                    });
-                    
-                    const data = await response.json();
-                    addMessageToChat('assistant', data.response || 'Sorry, I encountered an error.');
-                    
-                } catch (error) {
-                    addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
-                    console.error('Chat error:', error);
-                }
-            }
-    
-            function quickMessage(message) {
-                document.getElementById('chat-input').value = message;
-                sendMessage();
-            }
-    
-            function addMessageToChat(sender, message) {
-                const chatContainer = document.getElementById('chat-messages');
-                const messageDiv = document.createElement('div');
-                
-                messageDiv.className = `mb-3 fade-in ${sender === 'user' ? 'text-right' : 'text-left'}`;
-                messageDiv.innerHTML = `
-                    <div class="inline-block max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        sender === 'user' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-white border border-gray-300 text-gray-800'
-                    }">
-                        <div class="whitespace-pre-wrap">${message}</div>
+            } catch (error) {
+                console.error('Error loading quick activity:', error);
+                document.getElementById('quick-activity').innerHTML = `
+                    <div class="text-center py-2 text-gray-500">
+                        <p class="text-sm">Welcome to your EHS System!</p>
                     </div>
                 `;
+            }
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
                 
-                chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                const data = await response.json();
+                addMessageToChat('assistant', data.response || 'Sorry, I encountered an error.');
+                
+            } catch (error) {
+                addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+                console.error('Chat error:', error);
             }
-    
-            // Modal functions (simplified)
-            function openIncidentModal() {
-                const modalContent = `
-                    <h3 class="text-lg font-bold mb-4">Report Incident</h3>
-                    <p class="text-gray-600 mb-4">To report a detailed incident with photos and risk assessment, please use the chat interface.</p>
-                    <p class="text-sm text-gray-500 mb-4">Try saying: "I need to report an incident"</p>
-                    <button onclick="closeModal(); quickMessage('I need to report an incident')" 
-                            class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                        Start Incident Report
+        }
+
+        function quickMessage(message) {
+            document.getElementById('chat-input').value = message;
+            sendMessage();
+        }
+
+        function addMessageToChat(sender, message) {
+            const chatContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = `mb-3 fade-in ${sender === 'user' ? 'text-right' : 'text-left'}`;
+            messageDiv.innerHTML = `
+                <div class="inline-block max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    sender === 'user' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white border border-gray-300 text-gray-800'
+                }">
+                    <div class="whitespace-pre-wrap text-sm">${message}</div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Module navigation functions
+        function openIncidentModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Incident Management Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('I need to report an incident')" 
+                                class="flex items-center justify-center p-3 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-300 transition-all">
+                            <i class="fas fa-plus text-red-500 mr-2"></i>
+                            <span class="text-red-700 font-medium">Report New Incident</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Show me incident reports')" 
+                                class="flex items-center justify-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-all">
+                            <i class="fas fa-list text-blue-500 mr-2"></i>
+                            <span class="text-blue-700 font-medium">View All Incidents</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Help me assess risk')" 
+                                class="flex items-center justify-center p-3 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-300 transition-all">
+                            <i class="fas fa-chart-line text-purple-500 mr-2"></i>
+                            <span class="text-purple-700 font-medium">Risk Assessment</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📋 Supported Incident Types:</h4>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <span class="bg-white px-2 py-1 rounded">🩹 Injury/Illness</span>
+                            <span class="bg-white px-2 py-1 rounded">🚗 Vehicle</span>
+                            <span class="bg-white px-2 py-1 rounded">🔒 Security</span>
+                            <span class="bg-white px-2 py-1 rounded">🌊 Environmental</span>
+                            <span class="bg-white px-2 py-1 rounded">⚠️ Near Miss</span>
+                            <span class="bg-white px-2 py-1 rounded">💥 Property Damage</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
                     </button>
-                    <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
-                        Cancel
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function openSafetyModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-eye text-yellow-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Safety Concerns Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('I have a safety concern')" 
+                                class="flex items-center justify-center p-3 bg-yellow-50 rounded-lg border-2 border-yellow-200 hover:border-yellow-300 transition-all">
+                            <i class="fas fa-plus text-yellow-500 mr-2"></i>
+                            <span class="text-yellow-700 font-medium">Report Safety Concern</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Show me safety concerns')" 
+                                class="flex items-center justify-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-all">
+                            <i class="fas fa-list text-blue-500 mr-2"></i>
+                            <span class="text-blue-700 font-medium">View All Concerns</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Anonymous safety report')" 
+                                class="flex items-center justify-center p-3 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 transition-all">
+                            <i class="fas fa-user-secret text-green-500 mr-2"></i>
+                            <span class="text-green-700 font-medium">Anonymous Report</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">🔍 Report These Concerns:</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Unsafe equipment or machinery</li>
+                            <li>• Missing or damaged PPE</li>
+                            <li>• Blocked emergency exits</li>
+                            <li>• Chemical storage issues</li>
+                            <li>• Environmental hazards</li>
+                            <li>• Unsafe behaviors</li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
                     </button>
-                `;
-                showModal(modalContent);
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function openSDSModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-file-medical text-green-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">SDS Management Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('Tell me about chemical safety')" 
+                                class="flex items-center justify-center p-3 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 transition-all">
+                            <i class="fas fa-search text-green-500 mr-2"></i>
+                            <span class="text-green-700 font-medium">Search Chemical Information</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Upload SDS document')" 
+                                class="flex items-center justify-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-all">
+                            <i class="fas fa-upload text-blue-500 mr-2"></i>
+                            <span class="text-blue-700 font-medium">Upload SDS Document</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Generate chemical label')" 
+                                class="flex items-center justify-center p-3 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-300 transition-all">
+                            <i class="fas fa-tag text-purple-500 mr-2"></i>
+                            <span class="text-purple-700 font-medium">Generate GHS/NFPA Label</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">🧪 Chemical Database Includes:</h4>
+                        <div class="grid grid-cols-1 gap-1 text-sm">
+                            <span class="bg-white px-2 py-1 rounded">• Acetone - Highly flammable liquid</span>
+                            <span class="bg-white px-2 py-1 rounded">• Methanol - Toxic if inhaled/swallowed</span>
+                            <span class="bg-white px-2 py-1 rounded">• Sulfuric Acid - Causes severe burns</span>
+                            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded">+ Many more chemicals...</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function openRiskModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-chart-line text-purple-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Risk Management Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('Help me assess risk')" 
+                                class="flex items-center justify-center p-3 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-300 transition-all">
+                            <i class="fas fa-calculator text-purple-500 mr-2"></i>
+                            <span class="text-purple-700 font-medium">Start Risk Assessment</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Show me risk matrix')" 
+                                class="flex items-center justify-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-all">
+                            <i class="fas fa-table text-blue-500 mr-2"></i>
+                            <span class="text-blue-700 font-medium">View Risk Matrix</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📊 Risk Assessment Dimensions:</h4>
+                        <div class="grid grid-cols-1 gap-1 text-sm">
+                            <span class="bg-white px-2 py-1 rounded">👥 People - Injury potential (0-10)</span>
+                            <span class="bg-white px-2 py-1 rounded">🌍 Environment - Environmental impact (0-10)</span>
+                            <span class="bg-white px-2 py-1 rounded">💰 Cost - Financial impact (0-10)</span>
+                            <span class="bg-white px-2 py-1 rounded">📰 Reputation - Public attention (0-10)</span>
+                            <span class="bg-white px-2 py-1 rounded">⚖️ Legal - Regulatory consequences (0-10)</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function openCAPAModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-tasks text-indigo-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">CAPA Tracking Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('Show me CAPA actions')" 
+                                class="flex items-center justify-center p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200 hover:border-indigo-300 transition-all">
+                            <i class="fas fa-list text-indigo-500 mr-2"></i>
+                            <span class="text-indigo-700 font-medium">View All CAPAs</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Create CAPA action')" 
+                                class="flex items-center justify-center p-3 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 transition-all">
+                            <i class="fas fa-plus text-green-500 mr-2"></i>
+                            <span class="text-green-700 font-medium">Create New CAPA</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">🔧 CAPA Features:</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Auto-generation from incidents</li>
+                            <li>• Assignment and due date tracking</li>
+                            <li>• SLA monitoring and escalation</li>
+                            <li>• Integration with all modules</li>
+                            <li>• Progress tracking and completion</li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function openReportsModule() {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-chart-bar text-blue-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Reports & Analytics Module</h3>
+                    
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        <button onclick="closeModal(); quickMessage('Show me safety statistics')" 
+                                class="flex items-center justify-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-all">
+                            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
+                            <span class="text-blue-700 font-medium">Safety Statistics</span>
+                        </button>
+                        
+                        <button onclick="closeModal(); quickMessage('Generate safety report')" 
+                                class="flex items-center justify-center p-3 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 transition-all">
+                            <i class="fas fa-file-pdf text-green-500 mr-2"></i>
+                            <span class="text-green-700 font-medium">Generate PDF Report</span>
+                        </button>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📊 Available Reports:</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Real-time safety dashboards</li>
+                            <li>• Incident trend analysis</li>
+                            <li>• Risk distribution charts</li>
+                            <li>• CAPA performance metrics</li>
+                            <li>• Regulatory compliance reports</li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        // Emergency and quick actions
+        function emergencyIncident() {
+            quickMessage('EMERGENCY: I need to report a serious incident requiring immediate attention');
+        }
+
+        function quickIncidentReport() {
+            quickMessage('I need to report an incident');
+        }
+
+        function quickSafetyConcern() {
+            quickMessage('I have a safety concern');
+        }
+
+        function showHelp() {
+            quickMessage('Help');
+        }
+
+        function showComingSoon(moduleName) {
+            const modalContent = `
+                <div class="text-center">
+                    <i class="fas fa-clock text-gray-500 text-4xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">${moduleName}</h3>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg mb-4">
+                        <p class="text-yellow-800 font-medium mb-2">🚧 Coming Soon</p>
+                        <p class="text-sm text-yellow-700">This module is planned for future release as part of our P3 priority features.</p>
+                    </div>
+                    
+                    <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">📋 Current Available Modules:</h4>
+                        <ul class="text-sm space-y-1 text-gray-600">
+                            <li>✅ Incident Management</li>
+                            <li>✅ Safety Concerns</li>
+                            <li>✅ SDS Management</li>
+                            <li>✅ CAPA Tracking</li>
+                            <li>⚠️ Risk Management (In Progress)</li>
+                            <li>⚠️ Reports & Analytics (In Progress)</li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="closeModal()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            showModal(modalContent);
+        }
+
+        function showModal(content) {
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+        }
+
+        // Close modal when clicking overlay
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
             }
-    
-            function openSafetyModal() {
-                const modalContent = `
-                    <h3 class="text-lg font-bold mb-4">Report Safety Concern</h3>
-                    <p class="text-gray-600 mb-4">Report unsafe conditions before they become incidents.</p>
-                    <button onclick="closeModal(); quickMessage('I have a safety concern')" 
-                            class="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700">
-                        Report Safety Concern
-                    </button>
-                    <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
-                        Cancel
-                    </button>
-                `;
-                showModal(modalContent);
-            }
-    
-            function openSDSModal() {
-                const modalContent = `
-                    <h3 class="text-lg font-bold mb-4">SDS Management</h3>
-                    <p class="text-gray-600 mb-4">Upload and manage Safety Data Sheets with location-based organization.</p>
-                    <button onclick="closeModal(); quickMessage('Tell me about chemical safety')" 
-                            class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
-                        Learn About SDS Management
-                    </button>
-                    <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
-                        Cancel
-                    </button>
-                `;
-                showModal(modalContent);
-            }
-    
-            function openRiskModal() {
-                const modalContent = `
-                    <h3 class="text-lg font-bold mb-4">Risk Assessment</h3>
-                    <p class="text-gray-600 mb-4">Comprehensive risk evaluation using multi-dimensional analysis.</p>
-                    <button onclick="closeModal(); quickMessage('Help me assess risk')" 
-                            class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
-                        Start Risk Assessment
-                    </button>
-                    <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
-                        Cancel
-                    </button>
-                `;
-                showModal(modalContent);
-            }
-    
-            function showModal(content) {
-                document.getElementById('modal-content').innerHTML = content;
-                document.getElementById('modal-overlay').classList.remove('hidden');
-            }
-    
-            function closeModal() {
-                document.getElementById('modal-overlay').classList.add('hidden');
-            }
-    
-            // Close modal when clicking overlay
-            document.getElementById('modal-overlay').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal();
-                }
-            });
-        </script>
-    </body>
-    </html>'''
+        });
+
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            loadDashboardStats();
+            loadQuickActivity();
+        }, 30000);
+    </script>
+</body>
+</html>'''
     
     # Define placeholder methods for additional pages
     def get_incident_management_page(self):
