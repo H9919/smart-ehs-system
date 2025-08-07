@@ -1273,8 +1273,8 @@ How can I help keep your workplace safe today?"""
             return jsonify({'error': str(e)})
     
     def get_main_dashboard(self):
-        """Return enhanced main dashboard template"""
-        return '''<!DOCTYPE html>
+    """Return enhanced main dashboard template with full functionality"""
+    return '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1283,39 +1283,417 @@ How can I help keep your workplace safe today?"""
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chat-container { max-height: 400px; overflow-y: auto; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .pulse-green { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    </style>
 </head>
 
 <body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
     <header class="bg-white shadow-md border-b-4 border-blue-600">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-shield-alt text-blue-600 text-2xl"></i>
                     <h1 class="text-2xl font-bold text-gray-800">Enhanced Smart EHS System</h1>
-                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs pulse-green">
                         <i class="fas fa-circle text-green-500 text-xs"></i> Live & Enhanced
                     </span>
                 </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#dashboard" class="text-gray-600 hover:text-blue-600 transition-colors">Dashboard</a>
+                    <a href="#incidents" class="text-gray-600 hover:text-blue-600 transition-colors">Incidents</a>
+                    <a href="#sds" class="text-gray-600 hover:text-blue-600 transition-colors">SDS</a>
+                    <a href="#safety" class="text-gray-600 hover:text-blue-600 transition-colors">Safety</a>
+                    <a href="#risk" class="text-gray-600 hover:text-blue-600 transition-colors">Risk</a>
+                </nav>
             </div>
         </div>
     </header>
 
     <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Title Section -->
         <div class="text-center mb-8">
             <h2 class="text-4xl font-bold text-gray-800 mb-2">🛡️ Smart EHS Management Dashboard</h2>
             <p class="text-gray-600 text-lg">Integrated Safety • Risk Assessment • Chemical Management</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow-lg p-6">
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Total Incidents</h3>
+                        <p class="text-2xl font-bold text-gray-800" id="total-incidents">-</p>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-blue-500 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">High Risk</h3>
+                        <p class="text-2xl font-bold text-gray-800" id="high-risk-incidents">-</p>
+                    </div>
+                    <i class="fas fa-fire text-red-500 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">SDS Documents</h3>
+                        <p class="text-2xl font-bold text-gray-800" id="total-sds">-</p>
+                    </div>
+                    <i class="fas fa-file-medical text-green-500 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Safety Concerns</h3>
+                        <p class="text-2xl font-bold text-gray-800" id="total-concerns">-</p>
+                    </div>
+                    <i class="fas fa-eye text-yellow-500 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Open CAPAs</h3>
+                        <p class="text-2xl font-bold text-gray-800" id="open-capas">-</p>
+                    </div>
+                    <i class="fas fa-tasks text-purple-500 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Chat Interface -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-robot text-blue-600 text-xl mr-2"></i>Enhanced EHS Assistant
+                </h3>
+                
+                <!-- Chat Messages -->
+                <div class="chat-container bg-gray-50 rounded-lg p-4 mb-4" id="chat-messages">
+                    <div class="text-center py-8">
+                        <p class="text-gray-600 mb-4">🛡️ Welcome to the Enhanced Smart EHS System!</p>
+                        <p class="text-sm text-gray-500">System is ready and operational. How can I help you today?</p>
+                    </div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="flex space-x-2">
+                    <input type="text" id="chat-input" placeholder="Ask about safety, report incidents, or get help..." 
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <!-- Quick Action Buttons -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button onclick="quickMessage('I need to report an incident')" 
+                            class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm hover:bg-red-200 transition-colors">
+                        🚨 Report Incident
+                    </button>
+                    <button onclick="quickMessage('Tell me about chemical safety')" 
+                            class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm hover:bg-green-200 transition-colors">
+                        🧪 Chemical Safety
+                    </button>
+                    <button onclick="quickMessage('I have a safety concern')" 
+                            class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm hover:bg-yellow-200 transition-colors">
+                        ⚠️ Safety Concern
+                    </button>
+                    <button onclick="quickMessage('Help me assess risk')" 
+                            class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm hover:bg-purple-200 transition-colors">
+                        📊 Risk Assessment
+                    </button>
+                    <button onclick="quickMessage('Help')" 
+                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm hover:bg-blue-200 transition-colors">
+                        ❓ Help
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-bolt text-yellow-500 text-xl mr-2"></i>Quick Actions
+                </h3>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    <button onclick="openIncidentModal()" 
+                            class="flex items-center p-4 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-300 hover:bg-red-100 transition-all">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-4"></i>
+                        <div class="text-left">
+                            <h4 class="font-semibold text-gray-800">Report Incident</h4>
+                            <p class="text-sm text-gray-600">Report injuries, near misses, property damage</p>
+                        </div>
+                    </button>
+                    
+                    <button onclick="openSafetyModal()" 
+                            class="flex items-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-100 transition-all">
+                        <i class="fas fa-eye text-yellow-500 text-2xl mr-4"></i>
+                        <div class="text-left">
+                            <h4 class="font-semibold text-gray-800">Safety Concern</h4>
+                            <p class="text-sm text-gray-600">Report unsafe conditions or behaviors</p>
+                        </div>
+                    </button>
+                    
+                    <button onclick="openSDSModal()" 
+                            class="flex items-center p-4 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-300 hover:bg-green-100 transition-all">
+                        <i class="fas fa-file-medical text-green-500 text-2xl mr-4"></i>
+                        <div class="text-left">
+                            <h4 class="font-semibold text-gray-800">Upload SDS</h4>
+                            <p class="text-sm text-gray-600">Manage safety data sheets</p>
+                        </div>
+                    </button>
+                    
+                    <button onclick="openRiskModal()" 
+                            class="flex items-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-300 hover:bg-purple-100 transition-all">
+                        <i class="fas fa-chart-line text-purple-500 text-2xl mr-4"></i>
+                        <div class="text-left">
+                            <h4 class="font-semibold text-gray-800">Risk Assessment</h4>
+                            <p class="text-sm text-gray-600">Evaluate risks and hazards</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                <i class="fas fa-robot text-blue-600 text-xl mr-2"></i>Enhanced EHS Assistant
+                <i class="fas fa-clock text-gray-500 text-xl mr-2"></i>Recent Activity
             </h3>
-            <div class="text-center py-8">
-                <p class="text-gray-600 mb-4">🛡️ Welcome to the Enhanced Smart EHS System!</p>
-                <p class="text-sm text-gray-500">System is ready and operational.</p>
+            <div id="recent-activity" class="space-y-3">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading recent activity...</p>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Basic Modals (Simplified) -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div id="modal-content">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load dashboard stats on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardStats();
+            
+            // Setup enter key for chat
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+
+        // Load dashboard statistics
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                const data = await response.json();
+                
+                document.getElementById('total-incidents').textContent = data.total_incidents || 0;
+                document.getElementById('high-risk-incidents').textContent = data.high_risk_incidents || 0;
+                document.getElementById('total-sds').textContent = data.total_sds_documents || 0;
+                document.getElementById('total-concerns').textContent = data.total_safety_concerns || 0;
+                document.getElementById('open-capas').textContent = data.open_capa_actions || 0;
+                
+                // Load recent activity
+                displayRecentActivity(data.recent_activity || []);
+                
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+                // Set default values on error
+                ['total-incidents', 'high-risk-incidents', 'total-sds', 'total-concerns', 'open-capas'].forEach(id => {
+                    document.getElementById(id).textContent = '0';
+                });
+                
+                document.getElementById('recent-activity').innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        <p>Welcome to your Enhanced EHS System!</p>
+                        <p class="text-sm">Start by reporting incidents or uploading SDS documents.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display recent activity
+        function displayRecentActivity(activities) {
+            const container = document.getElementById('recent-activity');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        <p>No recent activity</p>
+                        <p class="text-sm">Start by using the quick actions above!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = activities.map(activity => `
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <i class="fas fa-${activity.type === 'incident' ? 'exclamation-triangle' : 'eye'} text-gray-500 mr-3"></i>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-800">${activity.title}</p>
+                        <p class="text-sm text-gray-500">${new Date(activity.date).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                addMessageToChat('assistant', data.response || 'Sorry, I encountered an error.');
+                
+            } catch (error) {
+                addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+                console.error('Chat error:', error);
+            }
+        }
+
+        function quickMessage(message) {
+            document.getElementById('chat-input').value = message;
+            sendMessage();
+        }
+
+        function addMessageToChat(sender, message) {
+            const chatContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = `mb-3 fade-in ${sender === 'user' ? 'text-right' : 'text-left'}`;
+            messageDiv.innerHTML = `
+                <div class="inline-block max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    sender === 'user' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-white border border-gray-300 text-gray-800'
+                }">
+                    <div class="whitespace-pre-wrap">${message}</div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Modal functions (simplified)
+        function openIncidentModal() {
+            const modalContent = `
+                <h3 class="text-lg font-bold mb-4">Report Incident</h3>
+                <p class="text-gray-600 mb-4">To report a detailed incident with photos and risk assessment, please use the chat interface.</p>
+                <p class="text-sm text-gray-500 mb-4">Try saying: "I need to report an incident"</p>
+                <button onclick="closeModal(); quickMessage('I need to report an incident')" 
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                    Start Incident Report
+                </button>
+                <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+            `;
+            showModal(modalContent);
+        }
+
+        function openSafetyModal() {
+            const modalContent = `
+                <h3 class="text-lg font-bold mb-4">Report Safety Concern</h3>
+                <p class="text-gray-600 mb-4">Report unsafe conditions before they become incidents.</p>
+                <button onclick="closeModal(); quickMessage('I have a safety concern')" 
+                        class="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700">
+                    Report Safety Concern
+                </button>
+                <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+            `;
+            showModal(modalContent);
+        }
+
+        function openSDSModal() {
+            const modalContent = `
+                <h3 class="text-lg font-bold mb-4">SDS Management</h3>
+                <p class="text-gray-600 mb-4">Upload and manage Safety Data Sheets with location-based organization.</p>
+                <button onclick="closeModal(); quickMessage('Tell me about chemical safety')" 
+                        class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+                    Learn About SDS Management
+                </button>
+                <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+            `;
+            showModal(modalContent);
+        }
+
+        function openRiskModal() {
+            const modalContent = `
+                <h3 class="text-lg font-bold mb-4">Risk Assessment</h3>
+                <p class="text-gray-600 mb-4">Comprehensive risk evaluation using multi-dimensional analysis.</p>
+                <button onclick="closeModal(); quickMessage('Help me assess risk')" 
+                        class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
+                    Start Risk Assessment
+                </button>
+                <button onclick="closeModal()" class="w-full mt-2 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+            `;
+            showModal(modalContent);
+        }
+
+        function showModal(content) {
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+        }
+
+        // Close modal when clicking overlay
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
 </body>
 </html>'''
     
