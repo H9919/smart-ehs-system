@@ -1,4 +1,5 @@
-# Smart EHS System - Absolute Minimal (No AI libraries)
+# Enhanced Smart EHS System - Production Ready
 Flask==3.0.0
 gunicorn==21.2.0
 python-dotenv==1.0.0
+fpdf2==2.7.6
